@@ -1,0 +1,2 @@
+# bangbot
+ Bang Discord Bot
