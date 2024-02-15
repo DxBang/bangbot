@@ -1,0 +1,13 @@
+{
+	"bot": {
+		"prefix": [
+			".", "!"
+		]
+	},
+	"extensions": [
+		"bang.gportal",
+		"bang.welcome",
+		"bang.help",
+		"bang.systems"
+	]
+}
