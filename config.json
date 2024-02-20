@@ -2,12 +2,14 @@
 	"bot": {
 		"prefix": [
 			".", "!"
-		]
+		],
+		"activity": "you..."
 	},
 	"extensions": [
-		"bang.gportal",
-		"bang.welcome",
-		"bang.help",
+		"!bang.gportal",
+		"!bang.welcome",
+		"!bang.help",
+		"!bang.events",
 		"bang.systems"
 	]
 }

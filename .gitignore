@@ -1,2 +1,5 @@
 .venv/*
 .vscode/*
+.env
+*.pyc
+guild/[0-9]*.json
