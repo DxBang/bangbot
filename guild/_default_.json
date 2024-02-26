@@ -3,12 +3,12 @@
 	"nick": "BangBot",
 	"connect": {
 		"gportal": {
-			"ftp": {
-				"host": "ftp.g-portal.com",
-				"port": 21,
-				"user": "user",
-				"password": "password"
-			}
+			"host": "ftp.g-portal.com",
+			"port": 21,
+			"username": "user",
+			"password": "password",
+			"directory": "/",
+			"storage": "T:/@ftp/gportal"
 		}
 	}
 }

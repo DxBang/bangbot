@@ -2,7 +2,7 @@ import os, sys
 from genericpath import exists
 import traceback
 import json
-
+import random
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -16,6 +16,7 @@ class Bang(commands.Bot):
 		"config",
 		"data",
 		"sql",
+		"console",
 	)
 
 	def __init__(self, token:str = None) -> None:
@@ -106,6 +107,14 @@ class Bang(commands.Bot):
 			traceback.print_exc()
 			sys.exit(1)
 
+	async def on_ready(self) -> None:
+		try:
+			print(f"Logged in as {self.user.name} ({self.user.id})")
+			# await self.setup_hook()
+		except Exception as e:
+			traceback.print_exc()
+			sys.exit(1)
+
 	async def on_guild_available(self, guild:discord.Guild) -> None:
 		try:
 			print(f"  GUILD: {guild.name} ({guild.id})")
@@ -176,15 +185,15 @@ class Bang(commands.Bot):
 			self.warn(e)
 
 	def embed(self,
-			ctx:commands.Context = None,
-			#message:discord.Message = None,
+			ctx:commands.Context,
+			# message:discord.Message = None,
 			guild:discord.Guild = None,
 			member:discord.Member = None,
 			title:str = None,
 			description:str = None,
 			bot:bool = False,
-			author:bool = True,
-			thumbnail:bool = True,
+			author:bool = False,
+			thumbnail:bool = False,
 			color:str = None,
 		) -> discord.Embed:
 		try:
@@ -194,10 +203,17 @@ class Bang(commands.Bot):
 				guild = ctx.guild
 			if ctx is not None and member is None:
 				member = ctx.author
+			if color is None:
+				if author is True:
+					color = ctx.author.color
+				elif bot is True:
+					color = ctx.me.color
+				else:
+					color = discord.Color.blue()
 			embed = discord.Embed(
 				title=title,
 				description=description,
-				color=color if color else member.color,
+				color=color,
 			)
 			if author and self.get_config(guild, "embed", "author"):
 				if bot:

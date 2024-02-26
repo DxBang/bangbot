@@ -3,3 +3,5 @@
 .env
 *.pyc
 guild/[0-9]*.json
+tmp/*
+test*.py
