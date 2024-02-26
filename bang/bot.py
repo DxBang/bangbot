@@ -24,8 +24,10 @@ class Bang(commands.Bot):
 			if token is None:
 				raise ValueError("Token is not provided.")
 			self.token = token
+			print("Loading config.json")
 			with open(sys.path[0] + "/config.json", encoding="utf-8") as f:
 				self.config = json.load(f)
+			print("Loaded")
 			self.config.update(
 				{
 					"guilds": {}
@@ -54,10 +56,10 @@ class Bang(commands.Bot):
 			)
 			self.sql = None
 		except FileNotFoundError:
-			print("config.json not found.")
+			print("json not found.")
 			sys.exit(1)
 		except json.JSONDecodeError:
-			print("config.json is invalid.")
+			print("invalid json file.")
 			sys.exit(1)
 		except Exception as e:
 			traceback.print_exc()

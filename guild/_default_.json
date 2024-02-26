@@ -10,5 +10,14 @@
 			"directory": "/",
 			"storage": "T:/@ftp/gportal"
 		}
+	},
+	"race": {
+		"create": false,
+		"background": "carbon-1k.jpg",
+		"logo": "dems2024-logo-wht.png",
+		"font": {
+			"title": ["Race Sport.ttf", 48],
+			"sans": ["LSANS.TTF", 24]
+		}
 	}
 }

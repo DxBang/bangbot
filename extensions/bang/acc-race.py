@@ -406,7 +406,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			if data["laps"] == 0:
 				embed = self.bot.embed(
 					ctx = ctx,
-					title = f"{data['server']} - {date.strftime('%d %B %Y')} - ***` {data['typeName']} `***",
+					title = f"{data['server']} - {date.strftime('%d %B %Y')} ***` {data['typeName']} `***",
 					description = f"**{track}** - **No laps**",
 					bot = True,
 				)
@@ -418,7 +418,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				)
 			embed = self.bot.embed(
 				ctx = ctx,
-				title = f"{data['server']} - {date.strftime('%d %B %Y')} - ***` {data['typeName']} `***",
+				title = f"{data['server']} - {date.strftime('%d %B %Y')}   ***` {data['typeName']} `***",
 				description = f"**{track}** - **{data['laps']} laps** in **{self.convert_time(data['time'])}**",
 				bot = True,
 			)
@@ -437,7 +437,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						leader = position
 						embed.add_field(
 							name = f"{self.place(place)} #{car['number']} {self.car(car['car'])[0]} {car['team']}",
-							value = f"{drivers} - {self.convert_time(position['time'])}",
+							value = f"{drivers}   {self.convert_time(position['time'])}",
 							inline = inline,
 						)
 					else:
@@ -445,14 +445,15 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 							delta = leader["laps"] - position["laps"]
 							embed.add_field(
 								name = f"{self.place(place)} #{car['number']} {self.car(car['car'])[0]}",
-								value = f"{drivers} - {self.convert_time(position['time'])} (+{delta} laps)",
+								#value = f"{drivers} - {self.convert_time(position['time'])} (+{delta} laps)",
+								value = f"{drivers}   +{delta} lap{delta > 1 and 's' or ''}",
 								inline = inline,
 							)
 						else:
 							delta = position["time"] - leader["time"]
 							embed.add_field(
 								name = f"{self.place(place)} #{car['number']} {self.car(car['car'])[0]}",
-								value = f"{drivers} - {self.convert_time(position['time'])} (+{self.convert_time(delta)})",
+								value = f"{drivers} · {self.convert_time(position['time'])} · (+{self.convert_time(delta)})",
 								inline = inline,
 							)
 					place += 1
@@ -480,15 +481,15 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						time_str = self.convert_time(time)
 					embed.add_field(
 						name = f"{self.place(place)} #{car['number']} {self.car(car['car'])[0]} {car['team']}",
-						value = f"{drivers} - {time_str} - {position['laps']} laps",
+						value = f"{drivers} · {time_str} · {position['laps']} lap{position['laps'] > 1 and 's' or ''}",
 						inline = False,
 					)
 					place += 1
 			fastestDriver = self.driverName(data['cars'][data['fastest']['car']]['drivers'][data['fastest']['driver']])
 			embed.add_field(
 				name = "Fastest Lap",
-				value = f"**{self.place(1)} #{data['cars'][data['fastest']['car']]['number']}** {fastestDriver}"\
-						f" - {self.convert_time(data['fastest']['time'])} on lap {data['fastest']['lap']}",
+				value = f"**🛞 #{data['cars'][data['fastest']['car']]['number']}** {fastestDriver}"\
+						f" · {self.convert_time(data['fastest']['time'])} on lap {data['fastest']['lap']}",
 				inline = False,
 			)
 			embed.set_footer(
