@@ -8,7 +8,7 @@
 		"activity": "you..."
 	},
 	"extensions": [
-		"bang.gportal",
+		"bang.acc-race",
 		"!bang.welcome",
 		"!bang.help",
 		"!bang.events",

@@ -2,7 +2,7 @@
 	"id": 0,
 	"nick": "BangBot",
 	"connect": {
-		"gportal": {
+		"acc": {
 			"host": "ftp.g-portal.com",
 			"port": 21,
 			"username": "user",

@@ -1,20 +1,17 @@
 """
-
-Login to GPortal via FTP and get the race results.
-
+Login to ACC Dedicated Server via FTP and get the race results.
 """
-
-import os, sys
+import os
+#import sys
 import json
 import ftplib
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
 import re
-
-import discord
+#import discord
+#from PIL import Image, ImageDraw, ImageFont
 from discord.ext import commands
 
-class GPortal(commands.Cog, name="GPortal"):
+class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	__slots__ = (
 		"bot",
 		"ftp",
@@ -505,9 +502,9 @@ class GPortal(commands.Cog, name="GPortal"):
 
 	async def handle_request(self, ctx:commands.Context, session:str, date:str = None, time:str = None) -> None:
 		try:
-			config = self.bot.get_config(ctx.guild, "connect", "gportal")
+			config = self.bot.get_config(ctx.guild, "connect", "acc")
 			if config is None:
-				raise ValueError("GPortal configuration not found.")
+				raise ValueError("ACC Dedicated Server configuration not found.")
 			if session not in ["FP", "Q", "R"]:
 				raise ValueError("Session must be one of **FP**, **Q**, **R**.")
 			if date is None:
@@ -678,125 +675,10 @@ class GPortal(commands.Cog, name="GPortal"):
 async def setup(bot:commands.Bot) -> None:
 	try:
 		await bot.add_cog(
-			GPortal(
+			ACCRace(
 				bot
 			)
 		)
 	except Exception as e:
 		raise e
-
-
-
-"""
-The race result example data:
-{
-	"server": "Danish eMotorsport Series",
-	"track": "mount_panorama",
-	"type": "FP",
-	"typeName": "Free Practice",
-	"wet": 0,
-	"laps": 6,
-	"time": 1449645,
-	"cars": {
-		"1001": {
-			"number": 999,
-			"car": 34,
-			"cup": 3,
-			"group": "GT3",
-			"team": "",
-			"laps": 6,
-			"time": 1449645,
-			"drivers": {
-				"0": {
-					"firstName": "",
-					"lastName": "Danish Smurf",
-					"shortName": "PLY",
-					"laps": [
-						157751,
-						230345,
-						131280,
-						193817,
-						321952,
-						414500
-					],
-					"time": 1449645,
-					"best": {
-						"fastest": true,
-						"lap": 3,
-						"time": 131280,
-						"splits": [
-							41047,
-							60887,
-							28252
-						]
-					},
-					"penalties": []
-				}
-			}
-		},
-		"1002": {
-			"number": 14,
-			"car": 35,
-			"cup": 0,
-			"group": "GT3",
-			"team": "",
-			"laps": 4,
-			"time": 774308,
-			"drivers": {
-				"0": {
-					"firstName": "",
-					"lastName": "DenneBurn",
-					"shortName": "DEN",
-					"laps": [
-						232536,
-						183242,
-						227040,
-						131490
-					],
-					"time": 774308,
-					"best": {
-						"fastest": false,
-						"lap": 10,
-						"time": 131490,
-						"splits": [
-							40935,
-							61390,
-							28300
-						]
-					},
-					"penalties": []
-				}
-			}
-		}
-	},
-	"drivers": [
-		{
-			"carId": 1001,
-			"idx": 0
-		},
-		{
-			"carId": 1002,
-			"idx": 0
-		}
-	],
-	"positions": [
-		{
-			"carId": 1001,
-			"laps": 6,
-			"time": 1489473
-		},
-		{
-			"carId": 1002,
-			"laps": 4,
-			"time": 1619149
-		}
-	],
-	"fastest": {
-		"car": 1001,
-		"driver": 0,
-		"lap": 3,
-		"time": 131280
-	}
-}
-"""
 

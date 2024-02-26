@@ -18,21 +18,21 @@ class Systems(commands.Cog, name="Systems"):
 			raise e
 
 	@commands.command(
-		description="Ping latency of the bot",
-		hidden=True,
+		description = "Ping latency of the bot",
+		hidden = True,
 	)
 	@commands.guild_only()
 	async def ping(self, ctx:commands.Context) -> None:
 		try:
 			embed = self.bot.embed(
-				ctx=ctx,
-				title="Ping",
-				description=f"{self.bot.latency * 1000:,.0f}ms",
-				bot=True,
+				ctx = ctx,
+				title = "Ping",
+				description = f"{self.bot.latency * 1000:,.0f}ms",
+				bot = True,
 			)
 			await ctx.send(
-				embed=embed,
-				reference=ctx.message,
+				embed = embed,
+				reference = ctx.message,
 			)
 		except discord.HTTPException:
 			await ctx.send(f"Pong: {self.bot.latency * 1000:,.0f}ms")
@@ -40,21 +40,21 @@ class Systems(commands.Cog, name="Systems"):
 			await self.bot.error(e, guild=ctx.guild)
 
 	@commands.command(
-		description="Get the bot's uptime",
-		hidden=True,
+		description = "Get the bot's uptime",
+		hidden = True,
 	)
 	@commands.guild_only()
 	async def uptime(self, ctx:commands.Context) -> None:
 		try:
 			embed = self.bot.embed(
-				ctx=ctx,
-				title="Uptime",
-				description=f"{self.bot.uptime()}",
-				bot=True,
+				ctx = ctx,
+				title = "Uptime",
+				description = f"{self.bot.uptime()}",
+				bot = True,
 			)
 			await ctx.send(
-				embed=embed,
-				reference=ctx.message,
+				embed = embed,
+				reference = ctx.message,
 			)
 		except discord.HTTPException:
 			await ctx.send(f"Uptime: {self.bot.uptime()}")

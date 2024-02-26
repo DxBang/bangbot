@@ -7,8 +7,8 @@ class Events(commands.Cog, name="Events"):
 
 	# @commands.hybrid_command()
 	@commands.command(
-		description="Create an event for people to sign up for with reactions for going, maybe, and not going.",
-		hidden=False,
+		description = "Create an event for people to sign up for with reactions for going, maybe, and not going.",
+		hidden = False,
 	)
 	@commands.guild_only()
 	async def event(self, )
