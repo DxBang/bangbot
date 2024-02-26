@@ -681,4 +681,3 @@ async def setup(bot:commands.Bot) -> None:
 		)
 	except Exception as e:
 		raise e
-
