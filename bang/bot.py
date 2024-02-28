@@ -29,7 +29,6 @@ class Bang(commands.Bot):
 			self.__POWERED_BY__ = "Bang Systems"
 			with open(sys.path[0] + "/config.json", encoding="utf-8") as f:
 				self.config = json.load(f)
-			print("Loaded")
 			self.config.update(
 				{
 					"guilds": {}
@@ -43,17 +42,18 @@ class Bang(commands.Bot):
 				self.config["default"] = json.load(f)
 			intents = discord.Intents.all()
 			super().__init__(
-				command_prefix=commands.when_mentioned_or(*self.config["bot"]["prefix"]),
-				intents=intents,
-				case_insensitive=True,
-				guild_subscriptions=True,
-				fetch_offline_members=True,
-				chunk_guilds_at_startup=True,
-				max_messages=2000,
-				status=discord.Status.online,
-				activity=discord.Activity(
-					name=self.config["bot"]["activity"],
-					type=discord.ActivityType.watching
+				command_prefix = commands.when_mentioned_or(*self.config["bot"]["prefix"]),
+				intents = intents,
+				case_insensitive = True,
+				guild_subscriptions = True,
+				fetch_offline_members = True,
+				chunk_guilds_at_startup = True,
+				max_messages = 2000,
+				status = self.config["bot"]["activity"]["status"],
+				activity = discord.Activity(
+					name = self.config["bot"]["activity"]["message"],
+					type = getattr(discord.ActivityType, self.config["bot"]["activity"]["type"]),
+					url = "https://bang.systems",
 				)
 			)
 			self.sql = None
@@ -136,18 +136,20 @@ class Bang(commands.Bot):
 					await guild.me.edit(
 						nick=nick
 					)
-				"""
-				avatar = self.get_config(guild, "avatar")
-				if avatar is not None:
-					if exists(sys.path[0] + '/guild/' + avatar):
-						with open(sys.path[0] + '/guild/' + avatar, "rb") as f:
-							await guild.me.edit(
-								display_avatar=f.read()
-							)
-				"""
 				print(f"   NICK: {guild.me.nick}")
 		except Exception as e:
-			await self.error(e, guild=guild)
+			await self.error(
+				e,
+				guild = guild
+			)
+
+	def main_guild(self):
+		try:
+			return self.get_guild(
+				self.config["default"]["main"]
+			)
+		except Exception as e:
+			self.warn(e)
 
 	def get_default(self, *args) -> list | dict | int | str | bool | None:
 		try:
@@ -255,8 +257,8 @@ class Bang(commands.Bot):
 	async def error(
 			self,
 			error:str,
-			guild:discord.Guild=None,
-			message:discord.Message=None,
+			guild:discord.Guild = None,
+			message:discord.Message = None,
 		) -> None:
 		frame = sys._getframe(1)
 		section = f"{frame.f_locals['self'].__class__.__name__}/{frame.f_code.co_name}"
@@ -266,10 +268,10 @@ class Bang(commands.Bot):
 		if guild is None:
 			guild = self.main_guild()
 		await self.log(
-			guild=guild,
-			log=f"{section}/error: {error}\n"\
+			guild = guild,
+			log = f"{section}/error: {error}\n"\
 				f"```{trace[:1000]}```",
-			message=message,
+			message = message,
 		)
 	def warn(
 			self,
@@ -283,10 +285,10 @@ class Bang(commands.Bot):
 
 	# log
 	async def log(self,
-			guild:discord.Guild=None,
-			log:str=None,
-			message:discord.Message=None,
-			files:list=None
+			guild:discord.Guild = None,
+			log:str = None,
+			message:discord.Message = None,
+			files:list = None
 		) -> None:
 		try:
 			print(f"LOG: {guild}: {log}")
@@ -301,39 +303,39 @@ class Bang(commands.Bot):
 			if channel is None:
 				return
 			embed = self.embed(
-				ctx=channel,
-				guild=guild,
-				member=guild.me,
-				title=f"{__class__.__name__}.{sys._getframe(1).f_code.co_name}",
-				description=log,
-				bot=True,
-				thumbnail=False,
-				author=False,
+				ctx = channel,
+				guild = guild,
+				member = guild.me,
+				title = f"{__class__.__name__}.{sys._getframe(1).f_code.co_name}",
+				description = log,
+				bot = True,
+				thumbnail = False,
+				author = False,
 			)
 			if message is not None:
 				embed.add_field(
-					name="Channel",
-					value=message.channel.mention,
-					inline=True,
+					name = "Channel",
+					value = message.channel.mention,
+					inline = True,
 				)
 				embed.add_field(
-					name="Author",
-					value=message.author.mention,
-					inline=True,
+					name = "Author",
+					value = message.author.mention,
+					inline = True,
 				)
 				embed.add_field(
-					name="Created",
-					value=self.datetime(message.created_at),
-					inline=True,
+					name = "Created",
+					value = self.datetime(message.created_at),
+					inline = True,
 				)
 				embed.add_field(
-					name="Message",
-					value=message.content,
-					inline=False,
+					name = "Message",
+					value = message.content,
+					inline = False,
 				)
 			if not files:
 				return await channel.send(
-					embed=embed
+					embed = embed
 				)
 			uploads = []
 			filenames = []
@@ -349,8 +351,8 @@ class Bang(commands.Bot):
 						)
 					)
 			await channel.send(
-				embed=embed,
-				files=uploads,
+				embed = embed,
+				files = uploads,
 			)
 			if files is not None:
 				for file in files:

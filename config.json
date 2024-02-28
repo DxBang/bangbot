@@ -5,7 +5,11 @@
 			"!",
 			"/"
 		],
-		"activity": "you..."
+		"activity": {
+			"status": "online",
+			"type": "playing",
+			"message": "with the universe"
+		}
 	},
 	"extensions": [
 		"bang.acc-race",

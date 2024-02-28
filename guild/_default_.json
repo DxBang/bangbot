@@ -1,6 +1,7 @@
 {
 	"id": 0,
 	"nick": "BangBot",
+	"main": 152590075920646145,
 	"connect": {
 		"acc": {
 			"host": "ftp.g-portal.com",
@@ -35,9 +36,9 @@
 		}
 	},
 	"channel": {
-		"welcome": 152590075920646145,
+		"welcome": null,
 		"general": [],
-		"staff": [1212145690319396884],
-		"log": 1212145690319396884
+		"staff": [],
+		"log": 1212447504784822354
 	}
 }
