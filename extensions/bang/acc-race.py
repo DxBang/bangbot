@@ -411,7 +411,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					bot = True,
 				)
 				embed.set_footer(
-					text = "Powered by Bang Systems",
+					text = f"Powered by {self.bot.__POWERED_BY__}",
 				)
 				return await ctx.send(
 					embed = embed
@@ -493,7 +493,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				inline = False,
 			)
 			embed.set_footer(
-				text = "Powered by Bang Systems",
+				text = f"Powered by {self.bot.__POWERED_BY__}",
 			)
 			return await ctx.send(
 				embed = embed
@@ -547,7 +547,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					bot = True,
 				)
 				embed.set_footer(
-					text = "Powered by Bang Systems",
+					text = f"Powered by {self.bot.__POWERED_BY__}",
 				)
 				return await ctx.send(
 					embed = embed
@@ -560,7 +560,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					bot = True,
 				)
 				embed.set_footer(
-					text = "Powered by Bang Systems",
+					text = f"Powered by {self.bot.__POWERED_BY__}",
 				)
 				return await ctx.send(
 					embed = embed
@@ -582,21 +582,25 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					embed = embed
 				)
 			return await self.handle_result(
-				ctx,
-				results[0],
-				date
+				ctx = ctx,
+				file = results[0],
+				date = date,
 			)
 		except ValueError as e:
 			await ctx.send(
-				f"Error: {e}"
+				content = f"Error: {e}"
 			)
 		except Exception as e:
-			await self.bot.error(e, guild=ctx.guild)
+			await self.bot.error(
+				e,
+				guild = ctx.guild,
+			)
 
 	@commands.command(
-		description="Get the results of the date",
-		hidden=False,
-		aliases=[
+		description = "Get the results of the date",
+		usage = "race [date] [time]",
+		hidden = False,
+		aliases = [
 			"r",
 			"result",
 			"race_results",
@@ -606,23 +610,25 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	async def race(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
 		try:
 			await self.handle_request(
-				ctx,
-				"R",
-				date,
-				time
+				ctx = ctx,
+				session = "R",
+				date = date,
+				time = time,
 			)
 		except ValueError as e:
 			await ctx.send(
-				f"Error: {e}"
+				content = f"Error: {e}",
 			)
 		except Exception as e:
-			await self.bot.error(e, guild=ctx.guild)
-
+			await self.bot.error(
+				e,
+				guild = ctx.guild,
+			)
 
 	@commands.command(
-		description="Get the results of the date",
-		hidden=False,
-		aliases=[
+		description = "Get the results of the date",
+		hidden = False,
+		aliases = [
 			"q",
 			"qual",
 			"quali",
@@ -634,22 +640,26 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	async def qualify(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
 		try:
 			await self.handle_request(
-				ctx,
-				"Q",
-				date,
-				time
+				ctx = ctx,
+				session = "Q",
+				date = date,
+				time = time,
 			)
 		except ValueError as e:
 			await ctx.send(
-				f"Error: {e}"
+				content = f"Error: {e}",
 			)
 		except Exception as e:
-			await self.bot.error(e, guild=ctx.guild)
+			await self.bot.error(
+				e,
+				guild = ctx.guild,
+			)
 
 	@commands.command(
-		description="Get the results of the date",
-		hidden=False,
-		aliases=[
+		description = "Get the results of the date",
+		usage = "practice [date] [time]",
+		hidden = False,
+		aliases = [
 			"f",
 			"fp",
 			"free",
@@ -661,17 +671,22 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	async def practice(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
 		try:
 			await self.handle_request(
-				ctx,
-				"FP",
-				date,
-				time
+				ctx = ctx,
+				session = "FP",
+				date = date,
+				time = time,
 			)
 		except ValueError as e:
 			await ctx.send(
-				f"Error: {e}"
+				content = f"Error: {e}"
 			)
 		except Exception as e:
-			await self.bot.error(e, guild=ctx.guild)
+			await self.bot.error(
+				e,
+				guild = ctx.guild,
+			)
+
+
 
 async def setup(bot:commands.Bot) -> None:
 	try:

@@ -17,6 +17,7 @@ class Bang(commands.Bot):
 		"data",
 		"sql",
 		"console",
+		"__POWERED_BY__",
 	)
 
 	def __init__(self, token:str = None) -> None:
@@ -25,6 +26,7 @@ class Bang(commands.Bot):
 				raise ValueError("Token is not provided.")
 			self.token = token
 			print("Loading config.json")
+			self.__POWERED_BY__ = "Bang Systems"
 			with open(sys.path[0] + "/config.json", encoding="utf-8") as f:
 				self.config = json.load(f)
 			print("Loaded")

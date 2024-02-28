@@ -11,7 +11,7 @@
 		"bang.acc-race",
 		"!bang.welcome",
 		"!bang.help",
-		"!bang.events",
+		"bang.event",
 		"bang.systems"
 	]
 }

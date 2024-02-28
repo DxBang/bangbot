@@ -19,5 +19,25 @@
 			"title": ["Race Sport.ttf", 48],
 			"sans": ["LSANS.TTF", 24]
 		}
+	},
+	"event": {
+		"accept": {
+			"name": "Going",
+			"emoji": "✅"
+		},
+		"maybe": {
+			"name": "Maybe",
+			"emoji": "❔"
+		},
+		"decline": {
+			"name": "Not Going",
+			"emoji": "❌"
+		}
+	},
+	"channel": {
+		"welcome": 152590075920646145,
+		"general": [],
+		"staff": [1212145690319396884],
+		"log": 1212145690319396884
 	}
 }
