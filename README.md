@@ -28,8 +28,8 @@ The bot is configured using the `config.json` file. The file is structured as fo
 	]
 }
 ```
-Enable the extensions by adding the file name to the `extensions` list in the `config.json` file. _(Hint: added ! before the extension name to indicate that it is disabled without removing it from the condig.)_
 
+Enable the extensions by adding the file name to the `extensions` list in the `config.json` file. _(Hint: added ! before the extension name to indicate that it is disabled without removing it from the condig.)_
 ```json
 {
 	"extensions": [
@@ -61,4 +61,10 @@ Besides the basic (ping, welcome message etc.) features, the bot has the followi
 ### Assetto Corsa Competizione @ G-Portal or Nitrado.
 `/result [date]` - Get the server status of the Assetto Corsa Competizione server hosted by G-Portal or Nitrado and generate the result as embed.
 
+### Event with Signup
+```txt
+/event Title of the event
 
+Lots of text for the description of the event.
+```
+This will create an embed with 3 colums for Going, Maybe, & Decline where people can click on the reaction emojies to place their choice.
