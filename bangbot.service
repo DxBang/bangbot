@@ -1,0 +1,14 @@
+[Unit]
+Description=Bang Discord Bot
+After=multi-user.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/src/discord/bangbot
+ExecStart=/src/discord/bangbot/.venv/bin/python3 /src/discord/bangbot/main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
