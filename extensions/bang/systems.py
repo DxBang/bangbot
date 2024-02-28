@@ -561,6 +561,27 @@ class Systems(commands.Cog, name="Bang Systems"):
 				guild = ctx.guild,
 			)
 
+	@commands.command(
+		description = "chat in a channel",
+		hidden = True,
+	)
+	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
+	async def chat(self, ctx:commands.Context, channel:discord.TextChannel, *, text:str):
+		try:
+			async with channel.typing():
+				await asyncio.sleep(1)
+			await channel.send(
+				content=text,
+			)
+			await ctx.message.delete()
+
+		except Exception as e:
+			await self.bot.error(
+				e,
+				guild = ctx.guild,
+			)
+
 
 async def setup(bot:commands.Bot) -> None:
 	try:
