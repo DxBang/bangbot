@@ -2,14 +2,14 @@
 	"id": 0,
 	"nick": "BangBot",
 	"main": 152590075920646145,
+	"use_system_temp": false,
 	"connect": {
 		"acc": {
 			"host": "ftp.g-portal.com",
 			"port": 21,
 			"username": "user",
 			"password": "password",
-			"directory": "/",
-			"storage": "T:/@ftp/gportal"
+			"directory": "/"
 		}
 	},
 	"race": {
@@ -22,17 +22,24 @@
 		}
 	},
 	"event": {
-		"accept": {
-			"name": "Going",
-			"emoji": "✅"
+		"label": {
+			"accept": {
+				"name": "Going",
+				"emoji": "✅"
+			},
+			"maybe": {
+				"name": "Maybe",
+				"emoji": "❔"
+			},
+			"decline": {
+				"name": "Not Going",
+				"emoji": "❌"
+			}
 		},
-		"maybe": {
-			"name": "Maybe",
-			"emoji": "❔"
-		},
-		"decline": {
-			"name": "Not Going",
-			"emoji": "❌"
+		"attachment": {
+			"download": false,
+			"image": true,
+			"thumbnail": false
 		}
 	},
 	"channel": {

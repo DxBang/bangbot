@@ -36,46 +36,46 @@ class Event(commands.Cog, name="Event Management"):
 				name = ctx.guild.name,
 				icon_url = ctx.guild.icon,
 			)
-			event_reaction = self.bot.get_config(ctx.guild, "event")
+			config = self.bot.get_config(ctx.guild, "event")
 			embed.add_field(
-				name = event_reaction["accept"]["name"],
+				name = config["label"]["accept"]["name"],
 				value = "\n",
 				inline = True,
 			)
 			embed.add_field(
-				name = event_reaction["maybe"]["name"],
+				name = config["label"]["maybe"]["name"],
 				value = "\n",
 				inline = True,
 			)
 			embed.add_field(
-				name = event_reaction["decline"]["name"],
+				name = config["label"]["decline"]["name"],
 				value = "\n",
 				inline = True,
 			)
 			files = None
 			if len(ctx.message.attachments) > 0:
-				embed.set_thumbnail(
-					url = ctx.message.attachments[0].url
-				)
-				embed.set_image(
-					url = ctx.message.attachments[0].url
-				)
-				"""
-				file = await self.bot.download_attachment(ctx.message.attachments[0])
-				files = [file]
-				embed.set_image(
-					url = "attachment://" + file.filename
-				)
-				"""
-
+				if config["attachment"]["thumbnail"]:
+					embed.set_thumbnail(
+						url = ctx.message.attachments[0].url
+					)
+				if config["attachment"]["download"] and config["attachment"]["image"]:
+					file = await self.bot.download_attachment(ctx.message.attachments[0])
+					files = [file]
+					embed.set_image(
+						url = "attachment://" + file.filename
+					)
+				elif config["attachment"]["image"]:
+					embed.set_image(
+						url = ctx.message.attachments[0].url
+					)
 			await ctx.message.delete()
 			message = await ctx.send(
 				embed = embed,
 				files = files,
 			)
-			await message.add_reaction(event_reaction["accept"]["emoji"])
-			await message.add_reaction(event_reaction["maybe"]["emoji"])
-			await message.add_reaction(event_reaction["decline"]["emoji"])
+			await message.add_reaction(config["label"]["accept"]["emoji"])
+			await message.add_reaction(config["label"]["maybe"]["emoji"])
+			await message.add_reaction(config["label"]["decline"]["emoji"])
 		except Exception as e:
 			await self.bot.error(
 				e,
@@ -92,19 +92,19 @@ class Event(commands.Cog, name="Event Management"):
 				return
 			if len(message.embeds) == 0:
 				return
-			event_reaction = self.bot.get_config(message.guild, "event")
+			config = self.bot.get_config(message.guild, "event")
 			embed = message.embeds[0]
 			if len(embed.fields) != 3:
 				return
 			fields = embed.fields
-			if fields[0].name != event_reaction["accept"]["name"] and\
-				fields[1].name != event_reaction["maybe"]["name"] and\
-				fields[2].name != event_reaction["decline"]["name"]:
+			if fields[0].name != config["label"]["accept"]["name"] and\
+				fields[1].name != config["label"]["maybe"]["name"] and\
+				fields[2].name != config["label"]["decline"]["name"]:
 				print("not an event message")
 				return
 			valid_reaction = []
-			for er in event_reaction:
-				valid_reaction.append(event_reaction[er]["emoji"])
+			for er in config["label"]:
+				valid_reaction.append(config["label"][er]["emoji"])
 			if payload.emoji.name not in valid_reaction:
 				return await message.remove_reaction(payload.emoji, user)
 			goings = fields[0].value.split("\n")
@@ -122,28 +122,28 @@ class Event(commands.Cog, name="Event Management"):
 			elif user.mention in declines:
 				declines.remove(user.mention)
 			# add the user to the list
-			if emoji == event_reaction["accept"]["emoji"]:
+			if emoji == config["label"]["accept"]["emoji"]:
 				goings.append(user.mention)
-			elif emoji == event_reaction["maybe"]["emoji"]:
+			elif emoji == config["label"]["maybe"]["emoji"]:
 				maybes.append(user.mention)
-			elif emoji == event_reaction["decline"]["emoji"]:
+			elif emoji == config["label"]["decline"]["emoji"]:
 				declines.append(user.mention)
 			# update the embed
 			embed.set_field_at(
 				0,
-				name = event_reaction["accept"]["name"],
+				name = config["label"]["accept"]["name"],
 				value = "\n".join(goings),
 				inline = True,
 			)
 			embed.set_field_at(
 				1,
-				name = event_reaction["maybe"]["name"],
+				name = config["label"]["maybe"]["name"],
 				value = "\n".join(maybes),
 				inline = True,
 			)
 			embed.set_field_at(
 				2,
-				name = event_reaction["decline"]["name"],
+				name = config["label"]["decline"]["name"],
 				value = "\n".join(declines),
 				inline = True,
 			)
@@ -170,8 +170,8 @@ class Event(commands.Cog, name="Event Management"):
 				return
 			if len(message.embeds) == 0:
 				return
-			event_reaction = self.bot.get_config(message.guild, "event")
-			if payload.emoji.name not in event_reaction.values():
+			config = self.bot.get_config(message.guild, "event")
+			if payload.emoji.name not in config.values():
 				print("not an event reaction")
 				return
 			embed = message.embeds[0]
@@ -188,27 +188,27 @@ class Event(commands.Cog, name="Event Management"):
 				print("no embed")
 				return
 			emoji = str(payload.emoji)
-			if emoji == event_reaction["accept"]["emoji"] and user.mention in goings:
+			if emoji == config["label"]["accept"]["emoji"] and user.mention in goings:
 				goings.remove(user.mention)
-			elif emoji == event_reaction["maybe"]["emoji"] and user.mention in maybes:
+			elif emoji == config["label"]["maybe"]["emoji"] and user.mention in maybes:
 				maybes.remove(user.mention)
-			elif emoji == event_reaction["decline"]["emoji"] and user.mention in declines:
+			elif emoji == config["label"]["decline"]["emoji"] and user.mention in declines:
 				declines.remove(user.mention)
 			embed.set_field_at(
 				0,
-				name = event_reaction["accept"]["name"],
+				name = config["label"]["accept"]["name"],
 				value = "\n".join(goings),
 				inline = True,
 			)
 			embed.set_field_at(
 				1,
-				name = event_reaction["maybe"]["name"],
+				name = config["label"]["maybe"]["name"],
 				value = "\n".join(maybes),
 				inline = True,
 			)
 			embed.set_field_at(
 				2,
-				name = event_reaction["decline"]["name"],
+				name = config["label"]["decline"]["name"],
 				value = "\n".join(declines),
 				inline = True,
 			)
