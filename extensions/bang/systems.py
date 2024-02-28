@@ -7,7 +7,7 @@ import re
 import discord
 from discord.ext import commands
 
-class Systems(commands.Cog, name="Systems"):
+class Systems(commands.Cog, name="Bang Systems"):
 	__slots__ = (
 		"bot"
 	)

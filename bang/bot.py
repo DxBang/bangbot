@@ -4,6 +4,7 @@ import traceback
 import json
 import random
 import discord
+import tempfile
 from discord.ext import commands
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
@@ -182,6 +183,19 @@ class Bang(commands.Bot):
 		except Exception as e:
 			self.warn(e)
 
+	def get_temp(self) -> str:
+		try:
+			use_system_temp = self.config["bot"]["use_system_temp"]
+			if use_system_temp is not None and use_system_temp is True:
+				return tempfile.gettempdir()
+			return os.path.join(
+				sys.path[0],
+				"tmp"
+			)
+			#return tempfile.gettempdir()
+		except Exception as e:
+			self.warn(e)
+
 	def uptime(self) -> str:
 		try:
 			delta = datetime.now(timezone.utc) - self.data["service"]
@@ -252,6 +266,40 @@ class Bang(commands.Bot):
 		except Exception as e:
 			self.warn(e)
 
+	async def download_attachment(self, attachment:discord.Attachment) -> discord.File:
+		try:
+			path = os.path.join(
+				self.get_temp(),
+				attachment.filename
+			)
+			await attachment.save(
+				path
+			)
+			return discord.File(
+				path,
+				filename=attachment.filename
+			)
+		except Exception as e:
+			await self.error(
+				e,
+			)
+
+	async def download_attachments(self, message:discord.Message) -> list:
+		try:
+			# use discord.file()
+			files = []
+			for attachment in message.attachments:
+				files.append(
+					await self.download_attachment(attachment)
+				)
+			return files
+		except Exception as e:
+			await self.error(
+				e,
+				guild = message.guild
+			)
+
+
 	# errors
 	async def error(
 			self,
@@ -290,6 +338,7 @@ class Bang(commands.Bot):
 			files:list = None
 		) -> None:
 		try:
+			return
 			print(f"LOG: {guild}: {log}")
 			if guild is None:
 				guild = self.main_guild()

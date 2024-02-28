@@ -52,9 +52,26 @@ class Event(commands.Cog, name="Event Management"):
 				value = "\n",
 				inline = True,
 			)
+			files = None
+			if len(ctx.message.attachments) > 0:
+				embed.set_thumbnail(
+					url = ctx.message.attachments[0].url
+				)
+				embed.set_image(
+					url = ctx.message.attachments[0].url
+				)
+				"""
+				file = await self.bot.download_attachment(ctx.message.attachments[0])
+				files = [file]
+				embed.set_image(
+					url = "attachment://" + file.filename
+				)
+				"""
+
 			await ctx.message.delete()
 			message = await ctx.send(
 				embed = embed,
+				files = files,
 			)
 			await message.add_reaction(event_reaction["accept"]["emoji"])
 			await message.add_reaction(event_reaction["maybe"]["emoji"])

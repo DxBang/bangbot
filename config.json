@@ -9,7 +9,8 @@
 			"status": "online",
 			"type": "playing",
 			"message": "with the universe"
-		}
+		},
+		"use_system_temp": false
 	},
 	"extensions": [
 		"bang.acc-race",
