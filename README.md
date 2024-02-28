@@ -11,6 +11,13 @@
 DISCORD_TOKEN=<your_discord_bot_token>
 ```
 
+### Install on Linux as Service
+1. Modified `bangbot.service` to match your installation.
+2. cp `bangbot.service` to `/etc/systemd/system`
+3. run `sudo systemctl daemon-reload`
+4. run `sudo systemctl enable bangbot.service`
+5. run `service bangbot restart`
+
 ## Configuration
 The bot is configured using the `config.json` file. The file is structured as follows:
 ```json
