@@ -4,8 +4,9 @@
 ## Installation
 1. Install Python 3.10 or higher
 2. Setup the virtual environment using `python -m venv .venv`
-3. Install the required packages using `pip install -r requirements.txt`
-4. Create a `.env` file in the root directory and add the following:
+3. Activate the virtual enviroment using `source .venv/bin/activate` or `.venv\Scripts\Activate.ps1`
+4. Install the required packages using `pip install -r requirements.txt`
+5. Create a `.env` file in the root directory and add the following:
 ```.env
 DISCORD_TOKEN=<your_discord_bot_token>
 ```
