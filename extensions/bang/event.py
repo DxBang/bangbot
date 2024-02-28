@@ -17,6 +17,7 @@ class Event(commands.Cog, name="Event Management"):
 		hidden = False,
 	)
 	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
 	async def event(self, ctx:commands.Context) -> None:
 		"""Create an event for people to sign up for with reactions for going, maybe, and not going."""
 		try:
@@ -36,14 +37,6 @@ class Event(commands.Cog, name="Event Management"):
 				icon_url = ctx.guild.icon,
 			)
 			event_reaction = self.bot.get_config(ctx.guild, "event")
-			for reaction in ctx.message.reactions:
-				users = await reaction.users().flatten()
-				if reaction.emoji == event_reaction["accept"]["emoji"]:
-					going = users
-				elif reaction.emoji == event_reaction["maybe"]["emoji"]:
-					maybe = users
-				elif reaction.emoji == event_reaction["decline"]["emoji"]:
-					decline = users
 			embed.add_field(
 				name = event_reaction["accept"]["name"],
 				value = "\n",
@@ -74,7 +67,7 @@ class Event(commands.Cog, name="Event Management"):
 
 	@commands.Cog.listener()
 	async def on_raw_reaction_add(self, payload:discord.RawReactionActionEvent) -> None:
-		"""Add a user to the list of people going to an event."""
+		"""Add a user to the list of people going/maybe/not going to an event."""
 		try:
 			message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
 			user = self.bot.get_user(payload.user_id)

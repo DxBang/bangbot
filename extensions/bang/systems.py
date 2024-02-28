@@ -131,7 +131,7 @@ class Systems(commands.Cog, name="Systems"):
 			await ctx.send(
 				content = md,
 				reference = ctx.message,
-				delete_after = 120,
+				#delete_after = 120,
 			)
 		except Exception as e:
 			await self.bot.error(
@@ -214,8 +214,8 @@ class Systems(commands.Cog, name="Systems"):
 				reference = ctx.message,
 			)
 			await self.bot.change_presence(
-				activity = discord.BaseActivity(
-					type = discord.CustomActivity,
+				activity = discord.CustomActivity(
+					type = discord.ActivityType.custom,
 					name = text,
 				)
 			)

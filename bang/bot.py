@@ -53,7 +53,6 @@ class Bang(commands.Bot):
 				activity = discord.Activity(
 					name = self.config["bot"]["activity"]["message"],
 					type = getattr(discord.ActivityType, self.config["bot"]["activity"]["type"]),
-					url = "https://bang.systems",
 				)
 			)
 			self.sql = None
@@ -71,7 +70,7 @@ class Bang(commands.Bot):
 		try:
 			super().run(
 				self.token,
-				reconnect=True
+				reconnect = True
 			)
 		except discord.LoginFailure:
 			print("Invalid token.")
@@ -217,37 +216,37 @@ class Bang(commands.Bot):
 				else:
 					color = discord.Color.blue()
 			embed = discord.Embed(
-				title=title,
-				description=description,
-				color=color,
+				title = title,
+				description = description,
+				color = color,
 			)
 			if author and self.get_config(guild, "embed", "author"):
 				if bot:
 					embed.set_author(
-						name=guild.me.name,
-						icon_url=guild.me.avatar,
+						name = guild.me.name,
+						icon_url = guild.me.avatar,
 					)
 				else:
 					embed.set_author(
-						name=member.display_name,
-						icon_url=member.avatar,
+						name = member.display_name,
+						icon_url = member.avatar,
 					)
 			if thumbnail and self.get_config(guild, "embed", "thumbnail"):
 				if bot:
 					embed.set_thumbnail(
-						url=guild.me.avatar,
+						url = guild.me.avatar,
 					)
 				if author:
 					embed.set_thumbnail(
-						url=member.avatar,
+						url = member.avatar,
 					)
 				else:
 					embed.set_thumbnail(
-						url=guild.icon,
+						url = guild.icon,
 					)
 			if self.get_config(guild, "embed", "footer"):
 				embed.set_footer(
-					text=guild.name,
+					text = guild.name,
 				)
 			return embed
 		except Exception as e:

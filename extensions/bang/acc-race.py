@@ -317,10 +317,14 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						laps = position["timing"]["lapCount"]
 			if len(data["laps"]):
 				lap = 1
+				carLaps = {}
 				for l in data["laps"]:
 					carId = l["carId"]
+					if carId not in carLaps:
+						carLaps[carId] = 0
 					driverIdx = l["driverIndex"]
 					if carId in cars:
+						carLaps[carId] += 1
 						car = cars[carId]
 						car["laps"] += 1
 						car["time"] += l["laptime"]
@@ -329,12 +333,12 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 							#driver["laps"] += 1
 							driver["laps"].append(l["laptime"])
 							if l["isValidForBest"]:
-								driver["best"]["lap"] = lap
+								driver["best"]["lap"] = carLaps[carId]
 								driver["best"]["time"] = l["laptime"]
 								if fastest["time"] == l["laptime"]:
 									fastest["car"] = carId
 									fastest["driver"] = driverIdx
-									fastest["lap"] = lap
+									fastest["lap"] = carLaps[carId]
 									driver["best"]["fastest"] = True
 							for i, s in enumerate(l["splits"]):
 								if driver["best"]["splits"][i] == 0:
