@@ -6,8 +6,8 @@ After=multi-user.target
 Type=simple
 User=www-data
 Group=www-data
-WorkingDirectory=/src/discord/bangbot
-ExecStart=/src/discord/bangbot/.venv/bin/python3 /src/discord/bangbot/main.py
+WorkingDirectory=/srv/discord/bangbot
+ExecStart=/srv/discord/bangbot/.venv/bin/python3 /srv/discord/bangbot/main.py
 Restart=always
 
 [Install]
