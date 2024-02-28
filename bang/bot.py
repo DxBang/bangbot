@@ -284,11 +284,11 @@ class Bang(commands.Bot):
 				e,
 			)
 
-	async def download_attachments(self, message:discord.Message) -> list:
+	async def download_attachments(self, attachments:list) -> list:
 		try:
 			# use discord.file()
 			files = []
-			for attachment in message.attachments:
+			for attachment in attachments:
 				files.append(
 					await self.download_attachment(attachment)
 				)

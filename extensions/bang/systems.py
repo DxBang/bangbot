@@ -552,8 +552,8 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 			await self.bot.change_presence(
 				activity = ctx.guild.me.activity,
-				status=ctx.guild.me.status,
-				afk=True
+				status = ctx.guild.me.status,
+				afk = True
 			)
 		except Exception as e:
 			await self.bot.error(
@@ -571,11 +571,14 @@ class Systems(commands.Cog, name="Bang Systems"):
 		try:
 			async with channel.typing():
 				await asyncio.sleep(1)
+			files = None
+			if len(ctx.message.attachments) > 0:
+				files = await self.bot.download_attachments(ctx.message.attachments)
 			await channel.send(
-				content=text,
+				content = text,
+				files = files,
 			)
 			await ctx.message.delete()
-
 		except Exception as e:
 			await self.bot.error(
 				e,
