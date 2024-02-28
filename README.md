@@ -35,7 +35,7 @@ Enable the extensions by adding the file name to the `extensions` list in the `c
 	"extensions": [
 		"bang.systems",
 		"bang.acc-race",
-		"bang.event",
+		"bang.event"
 	]
 }
 ```
