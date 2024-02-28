@@ -171,9 +171,6 @@ class Event(commands.Cog, name="Event Management"):
 			if len(message.embeds) == 0:
 				return
 			config = self.bot.get_config(message.guild, "event")
-			if payload.emoji.name not in config.values():
-				print("not an event reaction")
-				return
 			embed = message.embeds[0]
 			if len(embed.fields) != 3:
 				return
