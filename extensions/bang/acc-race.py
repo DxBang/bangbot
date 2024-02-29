@@ -216,12 +216,12 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 		try:
 			if (config['host'] is None or
 				config['port'] is None or
-				config['username'] is None or
+				config['user'] is None or
 				config['password'] is None or
 				config['directory'] is None):
 				return None
 			self.ftp.connect(config['host'], config['port'])
-			self.ftp.login(config['username'], config['password'])
+			self.ftp.login(config['user'], config['password'])
 			self.ftp.cwd(config['directory'])
 			storage = self.bot.get_temp()
 			print(f"storage: {storage}")
