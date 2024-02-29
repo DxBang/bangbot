@@ -3,11 +3,19 @@
 	"nick": "BangBot",
 	"main": 152590075920646145,
 	"use_system_temp": false,
+	"sql": {
+		"host": "192.168.0.99",
+		"port": 3306,
+		"user": "username",
+		"password": "password",
+		"db": "database",
+		"charset": "utf8mb4"
+	},
 	"connect": {
 		"acc": {
 			"host": "ftp.g-portal.com",
 			"port": 21,
-			"username": "user",
+			"user": "user",
 			"password": "password",
 			"directory": "/"
 		}
