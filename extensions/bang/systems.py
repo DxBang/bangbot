@@ -569,6 +569,12 @@ class Systems(commands.Cog, name="Bang Systems"):
 	@commands.has_permissions(moderate_members=True)
 	async def chat(self, ctx:commands.Context, channel:discord.TextChannel, *, text:str):
 		try:
+			# check if the bot has permission to send messages in the channel
+			if not channel.permissions_for(ctx.guild.me).send_messages:
+				return await ctx.send(
+					content = f"I don't have permission to send messages in {channel.mention}",
+					reference = ctx.message,
+				)
 			async with channel.typing():
 				await asyncio.sleep(1)
 			files = None
