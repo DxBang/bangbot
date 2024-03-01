@@ -3,7 +3,13 @@ import asyncio
 import json
 import os
 import re
-
+import psutil, platform
+from datetime import datetime, timezone
+try:
+	import nvgpu
+	from nvgpu.list_gpus import device_statuses
+except ImportError:
+	nvgpu = None
 import discord
 from discord.ext import commands
 
@@ -24,6 +30,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		hidden = True,
 	)
 	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
 	async def ping(self, ctx:commands.Context) -> None:
 		try:
 			embed = self.bot.embed(
@@ -52,6 +59,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		hidden = True,
 	)
 	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
 	async def uptime(self, ctx:commands.Context) -> None:
 		try:
 			embed = self.bot.embed(
@@ -73,6 +81,97 @@ class Systems(commands.Cog, name="Bang Systems"):
 				e,
 				guild = ctx.guild,
 			)
+
+	@commands.command(
+		description="CPU & memory usage of bot",
+		hidden=True,
+	)
+	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
+	async def usage(self, ctx:commands.Context):
+		try:
+			pid = os.getpid()
+			py = psutil.Process(pid)
+			now = datetime.now(timezone.utc)
+			uptime = self.bot.uptime()
+			embed = self.bot.embed(
+				ctx=ctx,
+				title="Usage",
+				bot=True,
+			)
+			embed.add_field(name="System", value=f"{platform.system()}", inline=True)
+			embed.add_field(name=platform.system(), value=f"{platform.release()}")
+			embed.add_field(name="Boot", value=f"{datetime.fromtimestamp(psutil.boot_time()).strftime('%Y-%m-%d %H:%M:%S')}", inline=True)
+			#embed.add_field(name="\u200b", value="\u200b", inline=True)
+			embed.add_field(name="Time", value=f"{now.strftime('%Y-%m-%d %H:%M:%S')}", inline=True)
+			#embed.add_field(name="\u200b", value="\u200b", inline=True)
+			if platform.system() != "Windows":
+				temp = psutil.sensors_temperatures()
+				fans = psutil.sensors_fans()
+				if "k10temp" in temp:
+					embed.add_field(name="CPU Temp", value=f"{temp['k10temp'][0].current}℃", inline=True) # ° ℃
+				if "nct6795" in fans:
+					embed.add_field(name="CPU Fan", value=f"{fans['nct6795'][1].current} RPM", inline=True)
+				embed.add_field(name="CPU Usage", value=f"{psutil.cpu_percent()}%", inline=True)
+				if "nouveau" in temp and "nouveau" in fans:
+					embed.add_field(name="GPU Temp", value=f"{temp['nouveau'][0].current}℃", inline=True) # ° ℃
+					embed.add_field(name="GPU Fan", value=f"{fans['nouveau'][0].current} RPM", inline=True)
+					#embed.add_field(name="\u200b", value="\u200b", inline=True)
+				else:
+					if nvgpu is not None:
+						gpus = nvgpu.gpu_info()
+						infos = device_statuses()
+						for gpu in gpus:
+							info = infos[int(gpu["index"])]
+							embed.add_field(name=f"GPU", value=f"{gpu['type']}", inline=True)
+							embed.add_field(name=f"GPU Temp", value=f"{info['temperature']}℃", inline=True)
+							embed.add_field(name=f"GPU Clock", value=f"{info['clock_mhz']}Mhz", inline=True)
+							embed.add_field(name=f"GPU RAM Usage", value=f"{self.bot.datasize(gpu['mem_used'] * 1024 * 1024)}/{self.bot.datasize(gpu['mem_total'] * 1024 * 1024)}", inline=True)
+							#embed.add_field(name="\u200b", value="\u200b", inline=True)
+							#embed.add_field(name="\u200b", value="\u200b", inline=True)
+				i = 0
+				if "nct6795" in fans:
+					for v in fans["nct6795"]:
+						if i < 2:
+							i += 1
+							continue
+						k = i - 1
+						#key = (f'Case Fan #{k}', f'{v.label} Fan')[len(v.label) > 0] # use labeled fan names if exists
+						embed.add_field(name=f"Case Fan #{k}", value=f"{v.current} RPM", inline=True)
+						i += 1
+			#embed.add_field(name="\u200b", value="\u200b", inline=True)
+			#embed.add_field(name="\u200b", value="\u200b", inline=True)
+			embed.add_field(name="RAM Usage", value=f"{self.bot.datasize(psutil.virtual_memory()[3])}/{self.bot.datasize(psutil.virtual_memory()[0])}", inline=True)
+			"""
+			await ctx.send(
+				embed=embed,
+				reference=ctx.message,
+				delete_after=3600,
+			)
+			embed = self.bot.embed(
+				ctx=ctx,
+				title='Bot Info',
+				bot=True,
+			)
+			"""
+			embed.add_field(name="Bangbot", value=f"{self.bot.__version__}")
+			embed.add_field(name="Discord.py", value=f"{discord.__version__}")
+			#embed.add_field(name="\u200b", value="\u200b", inline=True)
+			#embed.add_field(name="\u200b", value="\u200b", inline=True)
+			#embed.add_field(name=f"Bot PID", value=f"{pid}", inline=True)
+			embed.add_field(name="Uptime", value=f"{uptime}")
+			#embed.add_field(name="\u200b", value="\u200b", inline=True)
+			embed.add_field(name=f"Bot CPU Usage", value=f"{py.cpu_percent()}%", inline=True)
+			embed.add_field(name=f"Bot RAM Usage", value=f"{self.bot.datasize(py.memory_info()[0])}", inline=True)
+			#embed.add_field(name="Links", value="[Hilda](https://clare3dx.com/gallery/tagged/hilda)", inline=False)
+			#embed.set_footer(text="[3DX.World](https://3dx.world)")
+			return await ctx.send(
+				embed=embed,
+				reference=ctx.message,
+			)
+		except Exception as e:
+			await self.bot.error(e, guild=ctx.guild)
+
 
 	@commands.hybrid_command(
 		aliases = ["h"],

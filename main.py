@@ -5,11 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+with open('.version', 'r') as f:
+	version = f.read().strip()
 
 if __name__ == "__main__":
 	try:
 		bot = Bang(
-			TOKEN
+			TOKEN,
+			version
 		)
 		bot.run()
 	except Exception as e:

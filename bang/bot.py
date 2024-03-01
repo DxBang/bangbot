@@ -8,7 +8,7 @@ import tempfile
 from discord.ext import commands
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
-from typing import NamedTuple
+from typing import Coroutine, NamedTuple
 
 
 class Bang(commands.Bot):
@@ -19,15 +19,19 @@ class Bang(commands.Bot):
 		"sql",
 		"console",
 		"__POWERED_BY__",
+		"__version__",
 	)
 
-	def __init__(self, token:str = None) -> None:
+	def __init__(self, token:str = None, version:str = None) -> None:
 		try:
 			if token is None:
+				raise ValueError("Token is not provided.")
+			if version is None:
 				raise ValueError("Token is not provided.")
 			self.token = token
 			print("Loading config.json")
 			self.__POWERED_BY__ = "Bang Systems"
+			self.__version__ = version
 			with open(sys.path[0] + "/config.json", encoding="utf-8") as f:
 				self.config = json.load(f)
 			self.config.update(
@@ -202,6 +206,19 @@ class Bang(commands.Bot):
 			return str(delta).split(".")[0]
 		except Exception as e:
 			self.warn(e)
+
+	def datasize(self, bytes:int) -> str:
+		try:
+			if bytes < 1024:
+				return f"{bytes} B"
+			if bytes < 1048576:
+				return f"{bytes / 1024:.2f} KB"
+			if bytes < 1073741824:
+				return f"{bytes / 1048576:.2f} MB"
+			return f"{bytes / 1073741824:.2f} GB"
+		except Exception as e:
+			self.warn(e)
+
 
 	def embed(self,
 			ctx:commands.Context,
