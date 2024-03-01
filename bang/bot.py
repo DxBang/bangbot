@@ -297,7 +297,7 @@ class Bang(commands.Bot):
 				filename=attachment.filename
 			)
 		except Exception as e:
-			await self.error(
+			self.warn(
 				e,
 			)
 
@@ -311,11 +311,9 @@ class Bang(commands.Bot):
 				)
 			return files
 		except Exception as e:
-			await self.error(
-				e,
-				guild = message.guild
+			self.warn(
+				e
 			)
-
 
 	# errors
 	async def error(
@@ -337,14 +335,15 @@ class Bang(commands.Bot):
 				f"```{trace[:1000]}```",
 			message = message,
 		)
+
 	def warn(
 			self,
-			error:str,
+			warn:str,
 		) -> None:
 		frame = sys._getframe(1)
 		section = f"{frame.f_locals['self'].__class__.__name__}/{frame.f_code.co_name}"
 		trace = traceback.format_exc()
-		print(f"\033[1;31mERROR: {section}: {error}\033[0m")
+		print(f"\033[1;31mERROR: {section}: {warn}\033[0m")
 		print(f"TRACE:\n{trace}")
 
 	# log
