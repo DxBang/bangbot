@@ -281,7 +281,9 @@ class Bang(commands.Bot):
 				)
 			return embed
 		except Exception as e:
-			self.warn(e)
+			self.warn(
+				e
+			)
 
 	async def download_attachment(self, attachment:discord.Attachment) -> discord.File:
 		try:
