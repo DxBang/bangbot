@@ -14,9 +14,9 @@
 	},
 	"extensions": [
 		"bang.acc-race",
-		"!bang.welcome",
-		"!bang.help",
 		"bang.event",
-		"bang.systems"
+		"bang.systems",
+		"!bang.driver",
+		"!bang.welcome"
 	]
 }

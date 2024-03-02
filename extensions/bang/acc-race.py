@@ -600,7 +600,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				guild = ctx.guild,
 			)
 
-	@commands.command(
+	@commands.hybrid_command(
 		description = "Get the results of the date",
 		usage = "race [date] [time]",
 		hidden = False,
@@ -629,7 +629,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				guild = ctx.guild,
 			)
 
-	@commands.command(
+	@commands.hybrid_command(
 		description = "Get the results of the date",
 		hidden = False,
 		aliases = [
@@ -659,7 +659,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				guild = ctx.guild,
 			)
 
-	@commands.command(
+	@commands.hybrid_command(
 		description = "Get the results of the date",
 		usage = "practice [date] [time]",
 		hidden = False,

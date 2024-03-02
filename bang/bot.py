@@ -10,6 +10,25 @@ from discord import app_commands
 from datetime import datetime, timedelta, timezone
 from typing import Coroutine, NamedTuple
 
+def cprint(color:str, message:str, end:str="\n") -> None:
+	match (color):
+		case "red":
+			print(f"\033[1;31m{message}\033[0m", end=end)
+		case "green":
+			print(f"\033[1;32m{message}\033[0m", end=end)
+		case "yellow":
+			print(f"\033[1;33m{message}\033[0m", end=end)
+		case "blue":
+			print(f"\033[1;34m{message}\033[0m", end=end)
+		case "magenta":
+			print(f"\033[1;35m{message}\033[0m", end=end)
+		case "cyan":
+			print(f"\033[1;36m{message}\033[0m", end=end)
+		case "white":
+			print(f"\033[1;37m{message}\033[0m", end=end)
+		case _:
+			print(f"\033[1;37m{message}\033[0m", end=end)
+
 
 class Bang(commands.Bot):
 	__slots__ = (
@@ -22,16 +41,17 @@ class Bang(commands.Bot):
 		"__version__",
 	)
 
-	def __init__(self, token:str = None, version:str = None) -> None:
+	def __init__(self, token:str = None) -> None:
 		try:
 			if token is None:
 				raise ValueError("Token is not provided.")
-			if version is None:
-				raise ValueError("Token is not provided.")
 			self.token = token
+			with open('.version', 'r') as f:
+				self.__version__ = f.read().strip()
+			# print in white
+			cprint("blue", f"BangBot v{self.__version__} (discord.py v{discord.__version__}) (Python v{sys.version.split(' ')[0]})")
 			print("Loading config.json")
 			self.__POWERED_BY__ = "Bang Systems"
-			self.__version__ = version
 			with open(sys.path[0] + "/config.json", encoding="utf-8") as f:
 				self.config = json.load(f)
 			self.config.update(
@@ -62,10 +82,10 @@ class Bang(commands.Bot):
 			)
 			self.sql = None
 		except FileNotFoundError:
-			print("json not found.")
+			cprint("red", "json not found.")
 			sys.exit(1)
 		except json.JSONDecodeError:
-			print("invalid json file.")
+			cprint("red", "invalid json file.")
 			sys.exit(1)
 		except Exception as e:
 			traceback.print_exc()
@@ -73,15 +93,16 @@ class Bang(commands.Bot):
 
 	def run(self) -> None:
 		try:
+			cprint("green", "run()")
 			super().run(
 				self.token,
 				reconnect = True
 			)
 		except discord.LoginFailure:
-			print("Invalid token.")
+			cprint("red", "Invalid token.")
 			sys.exit(1)
 		except discord.HTTPException:
-			print("Failed to connect to Discord.")
+			cprint("red", "Failed to connect to Discord.")
 			sys.exit(1)
 		except Exception as e:
 			traceback.print_exc()
@@ -89,6 +110,8 @@ class Bang(commands.Bot):
 
 	async def setup_hook(self) -> None:
 		try:
+			cprint("green", "setup_hook()")
+			print(f"Temp: {self.get_temp()}")
 			for ext in self.config["extensions"]:
 				if ext[0] == "!":
 					continue
@@ -97,7 +120,7 @@ class Bang(commands.Bot):
 					"extensions." + ext
 				)
 		except discord.HTTPException:
-			print("Failed to load extension.")
+			cprint("red", "Failed to load extension.")
 			sys.exit(1)
 		except Exception as e:
 			traceback.print_exc()
@@ -105,6 +128,7 @@ class Bang(commands.Bot):
 
 	async def on_connect(self) -> None:
 		try:
+			cprint("green", "on_connect()")
 			self.data.update(
 				{
 					"connect": datetime.now(timezone.utc)
@@ -117,15 +141,37 @@ class Bang(commands.Bot):
 
 	async def on_ready(self) -> None:
 		try:
+			cprint("green", "on_ready()")
 			print(f"Logged in as {self.user.name} ({self.user.id})")
 			# await self.setup_hook()
+			await self.wait_until_ready()
+			for guild in self.guilds:
+				await self.sync(
+					guild
+				)
+			return
 		except Exception as e:
 			traceback.print_exc()
 			sys.exit(1)
 
+	async def sync(self, guild:discord.Guild = None) -> list:
+		try:
+			cprint("green", f"sync({guild})")
+			if guild is None:
+				raise ValueError("Guild is not provided.")
+			print(f"sync: {guild.name} ({guild.id})")
+			# sync app commands / slash commands
+			sync = await self.tree.sync(guild = guild)
+			print(f"synced {len(sync)} command(s).")
+			return sync
+		except Exception as e:
+			traceback.print_exc()
+			raise e
+
 	async def on_guild_available(self, guild:discord.Guild) -> None:
 		try:
-			print(f"  GUILD: {guild.name} ({guild.id})")
+			cprint("green", f"on_guild_available({guild})")
+			print(f"guild: {guild.name} ({guild.id})")
 			config_file = sys.path[0] + "/guild/" + str(guild.id) + ".json"
 			if exists(config_file):
 				with open(config_file, encoding="utf-8") as fh:
@@ -134,13 +180,13 @@ class Bang(commands.Bot):
 					)
 					config["id"] = guild.id
 					self.config["guilds"].update({guild.id: config})
-				print(f"   CONFIG: {config}")
+				print(f"config: {config}")
 				nick = self.get_config(guild, "nick")
 				if nick is not None:
 					await guild.me.edit(
 						nick=nick
 					)
-				print(f"   NICK: {guild.me.nick}")
+				print(f"nick: {guild.me.nick}")
 		except Exception as e:
 			await self.error(
 				e,
