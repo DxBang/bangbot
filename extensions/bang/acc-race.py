@@ -214,12 +214,12 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 
 	def get_results(self, config, pattern:str) -> list | None:
 		try:
-			if (config['host'] is None or
-				config['port'] is None or
-				config['user'] is None or
-				config['password'] is None or
-				config['directory'] is None):
-				return None
+			if (('host' not in config or config['host'] is None) or
+				('port' not in config or config['port'] is None) or
+				('user' not in config or config['user'] is None) or
+				('password' not in config or config['password'] is None) or
+				('directory' not in config or config['directory'] is None)):
+				raise ValueError("FTP configuration is incomplete.")
 			self.ftp.connect(config['host'], config['port'])
 			self.ftp.login(config['user'], config['password'])
 			self.ftp.cwd(config['directory'])
@@ -247,6 +247,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			return result
 		except Exception as e:
 			self.bot.warn(e)
+			raise e
 
 	def load_result(self, filename:str) -> dict:
 		try:
@@ -281,6 +282,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						idx = 0
 						for driver in position["car"]["drivers"]:
 							car["drivers"][idx] = {
+								"playerId": driver["playerId"],
 								"firstName": driver["firstName"],
 								"lastName": driver["lastName"],
 								"shortName": driver["shortName"],
