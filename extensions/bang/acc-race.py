@@ -5,7 +5,7 @@ import os
 #import sys
 import json
 import ftplib
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 #import discord
 #from PIL import Image, ImageDraw, ImageFont
@@ -224,7 +224,6 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			self.ftp.login(config['user'], config['password'])
 			self.ftp.cwd(config['directory'])
 			storage = self.bot.get_temp()
-			print(f"storage: {storage}")
 			# check if storage directory exists and create if not
 			if not os.path.exists(storage):
 				os.makedirs(storage)
@@ -516,24 +515,28 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				raise ValueError("Session must be one of **FP**, **Q**, **R**.")
 			if date is None:
 				date = datetime.now()
-				date_str = "today"
+				date_str = date.strftime("%-d %B %Y")
 			elif date.lower() == "today":
 				date = datetime.now()
-				date_str = "today"
+				date_str = date.strftime("%-d %B %Y")
 			elif date.lower() == "yesterday":
-				date = (datetime.now() - datetime.timedelta(days=1))
-				date_str = "yesterday"
+				date = datetime.now() - timedelta(days=1)
+				date_str = date.strftime("%-d %B %Y")
 			else:
 				# check if date is valid yymmdd or yyyy-mm-dd or dd/mm/yyyy
-				if re.match(r"[0-9]{2}[0-1][0-9][0-3][0-9]", date):
+				if re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
 					date = datetime.strptime(date, "%y%m%d")
-				elif re.match(r"[0-9]{4}-[0-1][0-9]-[0-3][0-9]", date):
+				elif re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
+					date = datetime.strptime(date, "%Y%m%d")
+				elif re.match(r"^[0-9]{4}-[0-1]?[0-9]-[0-3]?[0-9]$", date):
 					date = datetime.strptime(date, "%Y-%m-%d")
-				elif re.match(r"[0-3][0-9]/[0-1][0-9]/[0-9]{4}", date):
+				elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{2}$", date):
+					date = datetime.strptime(date, "%d/%m/%y")
+				elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
 					date = datetime.strptime(date, "%d/%m/%Y")
 				else:
 					raise ValueError("Invalid date format.")
-				date_str = date
+				date_str = date.strftime("%-d %B %Y")
 			if time is None:
 				time = r"\d{6}"
 				time_str = "any time"

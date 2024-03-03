@@ -10,24 +10,50 @@ from discord import app_commands
 from datetime import datetime, timedelta, timezone
 from typing import Coroutine, NamedTuple
 
-def cprint(color:str, message:str, end:str="\n") -> None:
-	match (color):
-		case "red":
-			print(f"\033[1;31m{message}\033[0m", end=end)
-		case "green":
-			print(f"\033[1;32m{message}\033[0m", end=end)
-		case "yellow":
-			print(f"\033[1;33m{message}\033[0m", end=end)
-		case "blue":
-			print(f"\033[1;34m{message}\033[0m", end=end)
-		case "magenta":
-			print(f"\033[1;35m{message}\033[0m", end=end)
-		case "cyan":
-			print(f"\033[1;36m{message}\033[0m", end=end)
-		case "white":
-			print(f"\033[1;37m{message}\033[0m", end=end)
-		case _:
-			print(f"\033[1;37m{message}\033[0m", end=end)
+def cprint(message:str, fg:str="white", bg:str="black", end:str="\n") -> None:
+	fg:int = {
+		"black": 30,
+		"red": 31,
+		"green": 32,
+		"orange": 33,
+		"blue": 34,
+		"magenta": 35,
+		"purple": 35,
+		"cyan": 36,
+		"white": 37,
+		"gray": 90,
+		"bright_red": 91,
+		"pink": 91,
+		"bright_green": 92,
+		"yellow": 93,
+		"bright_blue": 94,
+		"bright_magenta": 95,
+		"bright_purple": 95,
+		"bright_cyan": 96,
+	}.get(fg, 37)
+	bg:int = {
+		"black": 40,
+		"red": 41,
+		"green": 42,
+		"orange": 43,
+		"blue": 44,
+		"magenta": 45,
+		"purple": 45,
+		"cyan": 46,
+		"white": 47,
+		"gray": 100,
+		"bright_red": 101,
+		"pink": 101,
+		"bright_green": 102,
+		"yellow": 103,
+		"bright_blue": 104,
+		"bright_magenta": 105,
+		"bright_purple": 105,
+		"bright_cyan": 106,
+		"bright_white": 107,
+	}.get(bg, 40)
+	print(f"\033[1;{fg};{bg}m{message}\033[0m", end=end)
+
 
 
 class Bang(commands.Bot):
@@ -49,7 +75,7 @@ class Bang(commands.Bot):
 			with open('.version', 'r') as f:
 				self.__version__ = f.read().strip()
 			# print in white
-			cprint("blue", f"BangBot v{self.__version__} (discord.py v{discord.__version__}) (Python v{sys.version.split(' ')[0]})")
+			cprint(f"BangBot v{self.__version__} (discord.py v{discord.__version__}) (Python v{sys.version.split(' ')[0]})", "blue")
 			print("Loading config.json")
 			self.__POWERED_BY__ = "Bang Systems"
 			with open(sys.path[0] + "/config.json", encoding="utf-8") as f:
@@ -82,10 +108,10 @@ class Bang(commands.Bot):
 			)
 			self.sql = None
 		except FileNotFoundError:
-			cprint("red", "json not found.")
+			cprint("json not found.", "red")
 			sys.exit(1)
 		except json.JSONDecodeError:
-			cprint("red", "invalid json file.")
+			cprint("invalid json file.", "red")
 			sys.exit(1)
 		except Exception as e:
 			traceback.print_exc()
@@ -93,16 +119,16 @@ class Bang(commands.Bot):
 
 	def run(self) -> None:
 		try:
-			cprint("green", "run()")
+			cprint("run()", "green")
 			super().run(
 				self.token,
 				reconnect = True
 			)
 		except discord.LoginFailure:
-			cprint("red", "Invalid token.")
+			cprint("Invalid token.", "red")
 			sys.exit(1)
 		except discord.HTTPException:
-			cprint("red", "Failed to connect to Discord.")
+			cprint("Failed to connect to Discord.", "red")
 			sys.exit(1)
 		except Exception as e:
 			traceback.print_exc()
@@ -110,7 +136,7 @@ class Bang(commands.Bot):
 
 	async def setup_hook(self) -> None:
 		try:
-			cprint("green", "setup_hook()")
+			cprint("setup_hook()", "green")
 			print(f"Temp: {self.get_temp()}")
 			for ext in self.config["extensions"]:
 				if ext[0] == "!":
@@ -120,7 +146,7 @@ class Bang(commands.Bot):
 					"extensions." + ext
 				)
 		except discord.HTTPException:
-			cprint("red", "Failed to load extension.")
+			cprint("Failed to load extension.", "red")
 			sys.exit(1)
 		except Exception as e:
 			traceback.print_exc()
@@ -128,7 +154,7 @@ class Bang(commands.Bot):
 
 	async def on_connect(self) -> None:
 		try:
-			cprint("green", "on_connect()")
+			cprint("on_connect()", "green")
 			self.data.update(
 				{
 					"connect": datetime.now(timezone.utc)
@@ -141,8 +167,8 @@ class Bang(commands.Bot):
 
 	async def on_ready(self) -> None:
 		try:
-			cprint("green", "on_ready()")
-			print(f"Logged in as {self.user.name} ({self.user.id})")
+			cprint("on_ready()", "green")
+			cprint(f"Logged in as {self.user.name} ({self.user.id})", "black", "white")
 			# await self.setup_hook()
 			await self.wait_until_ready()
 			for guild in self.guilds:
@@ -156,22 +182,88 @@ class Bang(commands.Bot):
 
 	async def sync(self, guild:discord.Guild = None) -> list:
 		try:
-			cprint("green", f"sync({guild})")
+			cprint(f"sync({guild})", "green")
 			if guild is None:
 				raise ValueError("Guild is not provided.")
-			print(f"sync: {guild.name} ({guild.id})")
+			cprint(f"sync: {guild.name} ({guild.id})", "cyan")
 			# sync app commands / slash commands
 			sync = await self.tree.sync(guild = guild)
-			print(f"synced {len(sync)} command(s).")
+			cprint(f"	synced {len(sync)} command(s).", "cyan")
 			return sync
 		except Exception as e:
 			traceback.print_exc()
 			raise e
 
+	async def on_resumed(self) -> None:
+		try:
+			cprint(f"on_resumed()", "green")
+		except Exception as e:
+			await self.error(
+				e
+			)
+
+	async def on_guild_join(self, guild:discord.Guild) -> None:
+		try:
+			cprint(f"on_guild_join({guild})", "green")
+		except Exception as e:
+			await self.error(
+				e,
+				guild = guild
+			)
+
+	async def on_guild_remove(self, guild:discord.Guild) -> None:
+		try:
+			cprint(f"on_guild_remove({guild})", "green")
+		except Exception as e:
+			await self.error(
+				e,
+				guild = guild
+			)
+
+	async def on_guild_unavailable(self, guild:discord.Guild) -> None:
+		try:
+			cprint(f"on_guild_unavailable({guild})", "green")
+		except Exception as e:
+			await self.error(
+				e,
+				guild = guild
+			)
+
+	async def on_shard_ready(self, shard_id:int) -> None:
+		try:
+			cprint(f"on_shard_ready({shard_id})", "green")
+		except Exception as e:
+			await self.error(
+				e
+			)
+
+	async def on_shard_connect(self, shard_id:int) -> None:
+		try:
+			cprint(f"on_shard_connect({shard_id})", "green")
+		except Exception as e:
+			await self.error(
+				e
+			)
+
+	async def on_shard_disconnect(self, shard_id:int) -> None:
+		try:
+			cprint(f"on_shard_disconnect({shard_id})", "green")
+		except Exception as e:
+			await self.error(
+				e
+			)
+
+	async def on_shard_resumed(self, shard_id:int) -> None:
+		try:
+			cprint(f"on_shard_resumed({shard_id})", "green")
+		except Exception as e:
+			await self.error(
+				e
+			)
+
 	async def on_guild_available(self, guild:discord.Guild) -> None:
 		try:
-			cprint("green", f"on_guild_available({guild})")
-			print(f"guild: {guild.name} ({guild.id})")
+			cprint(f"on_guild_available({guild})", "green")
 			config_file = sys.path[0] + "/guild/" + str(guild.id) + ".json"
 			if exists(config_file):
 				with open(config_file, encoding="utf-8") as fh:
@@ -180,13 +272,12 @@ class Bang(commands.Bot):
 					)
 					config["id"] = guild.id
 					self.config["guilds"].update({guild.id: config})
-				print(f"config: {config}")
 				nick = self.get_config(guild, "nick")
 				if nick is not None:
 					await guild.me.edit(
 						nick=nick
 					)
-				print(f"nick: {guild.me.nick}")
+				cprint(f"nick: {guild.me.nick}", "blue")
 		except Exception as e:
 			await self.error(
 				e,
