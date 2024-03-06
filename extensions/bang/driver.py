@@ -90,16 +90,16 @@ class DriverInformation(discord.ui.Modal):
 			}
 		}
 		"""
+		id = str(interaction.user.id)
 		# check if the number has already been taken by another user
 		for driver, data in drivers.items():
-			if data["number"] == number and driver != interaction.user.id:
+			if data["number"] == number and driver != id:
 				await interaction.response.send_message(
 					"This number has already been taken",
 					ephemeral=True,
 				)
 				return
 		# check if the user.id is already in the json file, if it is, update the gamertag, if it isn't, add the user.id and gamertag to the json file
-		id = str(interaction.user.id)
 		if id in drivers:
 			drivers[id]["number"] = number
 			drivers[id]["gamertag"] = gamertag
@@ -199,15 +199,15 @@ class Driver(commands.Cog, name="Driver"):
 				}
 			}
 			"""
+			id = str(member.id)
 			# check if the number has already been taken by another user
 			for driver, data in drivers.items():
-				if data["number"] == number and driver != member.id:
+				if data["number"] == number and driver != id:
 					await ctx.send(
 						"This number has already been taken",
 					)
 					return
 			# check if the user.id is already in the json file, if it is, update the gamertag, if it isn't, add the user.id and gamertag to the json file
-			id = str(member.id)
 			if id in drivers:
 				drivers[id]["number"] = number
 				drivers[id]["gamertag"] = gamertag
