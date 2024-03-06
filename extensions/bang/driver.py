@@ -95,7 +95,7 @@ class DriverInformation(discord.ui.Modal):
 		for driver, data in drivers.items():
 			if data["number"] == number and driver != id:
 				await interaction.response.send_message(
-					"This number has already been taken",
+					f"The number {data['number']} has already been taken by {data['gamertag']}",
 					ephemeral=True,
 				)
 				return
@@ -204,7 +204,7 @@ class Driver(commands.Cog, name="Driver"):
 			for driver, data in drivers.items():
 				if data["number"] == number and driver != id:
 					await ctx.send(
-						"This number has already been taken",
+						f"The number {data['number']} has already been taken by {data['gamertag']}",
 					)
 					return
 			# check if the user.id is already in the json file, if it is, update the gamertag, if it isn't, add the user.id and gamertag to the json file
