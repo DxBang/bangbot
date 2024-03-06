@@ -126,11 +126,17 @@ class DriverInformation(discord.ui.Modal):
 				ephemeral=True,
 			)
 			return
+		# check if the user has a nickname & if the nickname is the same as the number and gamertag
+		if interaction.user.nick == nick:
+			await interaction.response.send_message(
+				"Your nickname is already set to the number and gamertag, thank you!",
+				ephemeral=True,
+			)
+			return
 		# rename the user nickname to #number gamertag
 		await interaction.user.edit(
 			nick=nick,
 		)
-
 		# send a message to the user
 		await interaction.response.send_message(
 			f"Your number is #{number} and your gamertag is {gamertag}",
@@ -224,6 +230,12 @@ class Driver(commands.Cog, name="Driver"):
 			if ctx.guild.me.top_role.position <= member.top_role.position:
 				await ctx.send(
 					f"I don't have a higher role than {member.mention}, please set your nickname manually to {nick}",
+				)
+				return
+			# check if the user has a nickname & if the nickname is the same as the number and gamertag
+			if member.nick == nick:
+				await ctx.send(
+					f"{member.mention} already has the number and gamertag, thank you!",
 				)
 				return
 			# rename the user nickname to #number gamertag
