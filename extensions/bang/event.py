@@ -88,11 +88,21 @@ class Event(commands.Cog, name="Event Management"):
 		"""Add a user to the list of people going/maybe/not going to an event."""
 		try:
 			message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-			user = self.bot.get_user(payload.user_id)
-			if user.id == self.bot.user.id:
+			#author = message.author
+			guild = self.bot.get_guild(payload.guild_id)
+			member = guild.get_member(payload.user_id)
+			if member.id == self.bot.user.id:
+				# bot predefined reaction
 				return
 			if len(message.embeds) == 0:
 				return
+			roles = self.bot.get_config(message.guild, "event", "roles")
+			# roles format: [729023577977782322, 729023577977782324]
+			if len(roles) > 0:
+				for role in roles:
+					if role not in [role.id for role in member.roles]:
+						return await message.remove_reaction(payload.emoji, member)
+
 			label = self.bot.get_config(message.guild, "label", "event")
 			embed = message.embeds[0]
 			if len(embed.fields) != 3:
@@ -108,27 +118,25 @@ class Event(commands.Cog, name="Event Management"):
 			for er in label:
 				valid_reaction.append(label[er]["emoji"])
 			if payload.emoji.name not in valid_reaction:
-				return await message.remove_reaction(payload.emoji, user)
+				return await message.remove_reaction(payload.emoji, member)
 			goings = fields[0].value.split("\n")
 			maybes = fields[1].value.split("\n")
 			declines = fields[2].value.split("\n")
-			#if message.author.id != self.bot.user.id:
-			#	return
 			emoji = str(payload.emoji)
 			# remove the user from the list
-			if user.mention in goings:
-				goings.remove(user.mention)
-			elif user.mention in maybes:
-				maybes.remove(user.mention)
-			elif user.mention in declines:
-				declines.remove(user.mention)
+			if member.mention in goings:
+				goings.remove(member.mention)
+			elif member.mention in maybes:
+				maybes.remove(member.mention)
+			elif member.mention in declines:
+				declines.remove(member.mention)
 			# add the user to the list
 			if emoji == label['accept']['emoji']:
-				goings.append(user.mention)
+				goings.append(member.mention)
 			elif emoji == label['maybe']['emoji']:
-				maybes.append(user.mention)
+				maybes.append(member.mention)
 			elif emoji == label['decline']['emoji']:
-				declines.append(user.mention)
+				declines.append(member.mention)
 			# update the embed
 			embed.set_field_at(
 				0,
@@ -154,9 +162,9 @@ class Event(commands.Cog, name="Event Management"):
 			for reaction in message.reactions:
 				if reaction.emoji == emoji:
 					continue
-				users = [user async for user in reaction.users()]
-				if user in users:
-					await message.remove_reaction(reaction.emoji, user)
+				members = [user async for user in reaction.users()]
+				if member in members:
+					await message.remove_reaction(reaction.emoji, member)
 		except Exception as e:
 			print(f"error: {e}")
 			raise e
@@ -166,8 +174,10 @@ class Event(commands.Cog, name="Event Management"):
 		"""Remove a user from the list of people going to an event."""
 		try:
 			message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-			user = self.bot.get_user(payload.user_id)
-			if user.id == self.bot.user.id:
+			guild = self.bot.get_guild(payload.guild_id)
+			member = guild.get_member(payload.user_id)
+			#user = self.bot.get_user(payload.user_id)
+			if member.id == self.bot.user.id:
 				return
 			if len(message.embeds) == 0:
 				return
@@ -185,20 +195,18 @@ class Event(commands.Cog, name="Event Management"):
 			goings = fields[0].value.split("\n")
 			maybes = fields[1].value.split("\n")
 			declines = fields[2].value.split("\n")
-			if message.author.id != self.bot.user.id:
-				return
 			if len(message.embeds) == 0:
 				return
 			emoji = str(payload.emoji)
 			update = False
-			if emoji == label['accept']['emoji'] and user.mention in goings:
-				goings.remove(user.mention)
+			if emoji == label['accept']['emoji'] and member.mention in goings:
+				goings.remove(member.mention)
 				update = True
-			elif emoji == label['maybe']['emoji'] and user.mention in maybes:
-				maybes.remove(user.mention)
+			elif emoji == label['maybe']['emoji'] and member.mention in maybes:
+				maybes.remove(member.mention)
 				update = True
-			elif emoji == label['decline']['emoji'] and user.mention in declines:
-				declines.remove(user.mention)
+			elif emoji == label['decline']['emoji'] and member.mention in declines:
+				declines.remove(member.mention)
 				update = True
 			if update:
 				print("update")
