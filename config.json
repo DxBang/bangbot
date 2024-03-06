@@ -2,8 +2,7 @@
 	"bot": {
 		"prefix": [
 			".",
-			"!",
-			"/"
+			"!"
 		],
 		"activity": {
 			"status": "online",
@@ -16,7 +15,9 @@
 		"bang.acc-race",
 		"bang.event",
 		"bang.systems",
-		"!bang.driver",
+		"bang.driver",
+		"!bang.gaming",
+		"!bang.test",
 		"!bang.welcome"
 	]
 }

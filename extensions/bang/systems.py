@@ -83,8 +83,8 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 
 	@commands.command(
-		description="CPU & memory usage of bot",
-		hidden=True,
+		description = "CPU & memory usage of bot",
+		hidden = True,
 	)
 	@commands.guild_only()
 	@commands.has_permissions(moderate_members=True)
@@ -173,10 +173,36 @@ class Systems(commands.Cog, name="Bang Systems"):
 			await self.bot.error(e, guild=ctx.guild)
 
 
+	@commands.command(
+		description = "Sync the bot's slash commands",
+		hidden = True,
+	)
+	@commands.guild_only()
+	@commands.is_owner()
+	@commands.has_permissions(moderate_members=True)
+	async def sync(self, ctx:commands.Context) -> None:
+		try:
+			synced = await self.bot.tree.sync(
+				guild = ctx.guild
+			)
+			await ctx.send(
+				f"Synced: {len(synced)} commands"
+			)
+		except Exception as e:
+			await self.bot.error(
+				e,
+				guild = ctx.guild,
+			)
+
+
+
+
 	@commands.hybrid_command(
-		aliases = ["h"],
 		description = "Show this help...",
 		usage = "help [command/cog/extension]",
+		aliases = [
+			"h",
+		],
 	)
 	async def help(self, ctx:commands.Context, command:str = None) -> None:
 		try:

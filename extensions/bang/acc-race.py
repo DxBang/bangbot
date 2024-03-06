@@ -10,6 +10,8 @@ import re
 #import discord
 #from PIL import Image, ImageDraw, ImageFont
 from discord.ext import commands
+from discord import app_commands
+import traceback
 
 class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	__slots__ = (
@@ -605,7 +607,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				guild = ctx.guild,
 			)
 
-	@commands.hybrid_command(
+	@commands.command(
 		description = "Get the results of the date",
 		usage = "race [date] [time]",
 		hidden = False,
@@ -629,12 +631,13 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				content = f"Error: {e}",
 			)
 		except Exception as e:
+			traceback.print_exc()
 			await self.bot.error(
 				e,
 				guild = ctx.guild,
 			)
 
-	@commands.hybrid_command(
+	@commands.command(
 		description = "Get the results of the date",
 		hidden = False,
 		aliases = [
@@ -664,7 +667,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				guild = ctx.guild,
 			)
 
-	@commands.hybrid_command(
+	@commands.command(
 		description = "Get the results of the date",
 		usage = "practice [date] [time]",
 		hidden = False,

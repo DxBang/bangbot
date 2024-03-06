@@ -171,11 +171,12 @@ class Bang(commands.Bot):
 			cprint(f"Logged in as {self.user.name} ({self.user.id})", "black", "white")
 			# await self.setup_hook()
 			await self.wait_until_ready()
-			for guild in self.guilds:
-				await self.sync(
-					guild
-				)
-			return
+			await self.sync()
+			#for guild in self.guilds:
+			#	await self.sync(
+			#		guild
+			#	)
+			print(f"Ready to serve {len(self.guilds)} guild(s).")
 		except Exception as e:
 			traceback.print_exc()
 			sys.exit(1)
@@ -184,12 +185,16 @@ class Bang(commands.Bot):
 		try:
 			cprint(f"sync({guild})", "green")
 			if guild is None:
-				raise ValueError("Guild is not provided.")
-			cprint(f"sync: {guild.name} ({guild.id})", "cyan")
-			# sync app commands / slash commands
-			sync = await self.tree.sync(guild = guild)
-			cprint(f"	synced {len(sync)} command(s).", "cyan")
-			return sync
+				synced = await self.tree.sync()
+			else:
+				cprint(f"sync: {guild.name} ({guild.id})", "cyan")
+				# sync app commands / slash commands
+				self.tree.copy_global_to(guild=guild)
+				synced = await self.tree.sync(guild=guild)
+			for command in synced:
+				cprint(f"/{command}", "cyan")
+			cprint(f"Synced a total of {len(synced)} command(s).", "cyan")
+			return synced
 		except Exception as e:
 			traceback.print_exc()
 			raise e
@@ -563,3 +568,144 @@ class Bang(commands.Bot):
 		except Exception as e:
 			print(f"{__class__.__name__}/{sys._getframe(0).f_code.co_name}/error: {e}")
 			traceback.print_exc()
+
+	@commands.Cog.listener()
+	async def on_command_error(self, ctx:commands.Context, error:commands.CommandError) -> None:
+		try:
+			if hasattr(ctx.cog, f"_{ctx.cog.__class__.__name__}__error"):
+				return
+			if hasattr(ctx.command, "on_error"):
+				return
+			error = getattr(error, "original", error)
+			if isinstance(error, (
+					commands.CommandNotFound,
+					#commands.UserInputError
+				)):
+				return
+			if isinstance(error, commands.CommandOnCooldown):
+				now = datetime.now(timezone.utc)
+				cooldown = (now + timedelta(seconds=round(error.retry_after))) - now
+				return await ctx.send(
+					random.choice(
+						self.get_config(ctx.guild, "response", "error_command_cooldown")
+					).format(
+						author=ctx.author.mention,
+						command=ctx.command,
+						cooldown=cooldown,
+						type=error.type,
+					),
+					reference=ctx.message,
+					delete_after=300,
+				)
+			elif isinstance(error, commands.DisabledCommand):
+				return await ctx.send(
+					random.choice(
+						self.get_config(ctx.guild, "response", "error_command_disabled")
+					).format(
+						author=ctx.author.mention,
+						command=ctx.command,
+					),
+					reference=ctx.message,
+					delete_after=300,
+				)
+			elif isinstance(error, commands.MissingRequiredArgument):
+
+				return await ctx.send(
+					random.choice(
+						self.get_config(ctx.guild, "response", "error_command_missing_argument")
+					).format(
+						author=ctx.author.mention,
+						command=ctx.command,
+						param=error.param,
+					),
+					reference=ctx.message,
+					delete_after=300,
+				)
+
+			elif isinstance(error, commands.CommandNotFound):
+				return await ctx.send(
+					random.choice(
+						self.get_config(ctx.guild, "response", "error_command_not_found")
+					).format(
+						author=ctx.author.mention,
+						command=ctx.command,
+					),
+					reference=ctx.message,
+					delete_after=300,
+				)
+
+			elif isinstance(error, commands.NoPrivateMessage):
+				try:
+					return await ctx.author.send(
+						random.choice(
+							self.get_config(ctx.guild, "response", "error_command_not_in_private")
+						).format(
+							author=ctx.author.mention,
+							command=ctx.command,
+						)
+					)
+				except:
+					pass
+			elif isinstance(error, commands.BadArgument):
+				if ctx.command.qualified_name == "tag list":
+					return await ctx.send(
+						random.choice(
+							self.get_config(ctx.guild, "response", "error_command_bad_argument_tag")
+						).format(
+							author=ctx.author.mention,
+							command=ctx.command,
+							args=error.args
+						),
+						reference=ctx.message,
+						delete_after=300,
+					)
+				return await ctx.send(
+					random.choice(
+						self.get_config(ctx.guild, "response", "error_command_bad_argument")
+					).format(
+						author=ctx.author.mention,
+						command=ctx.command,
+						args=error.args
+					),
+					reference=ctx.message,
+					delete_after=300,
+				)
+			elif isinstance(error, commands.NotOwner):
+				return await ctx.send(
+					random.choice(
+						self.get_config(ctx.guild, "response", "error_command_not_owner")
+					).format(
+						author=ctx.author.mention,
+						command=ctx.command,
+						args=error.args
+					),
+					reference=ctx.message,
+					delete_after=300,
+				)
+			elif isinstance(error, commands.MissingPermissions):
+				return await ctx.send(
+					random.choice(
+						self.get_config(ctx.guild, "response", "error_command_missing_permissions")
+					).format(
+						author=ctx.author.mention,
+						command=ctx.command,
+						args=error.args
+					),
+					reference=ctx.message,
+					delete_after=300,
+				)
+			else:
+				print(f"{error} type {type(error)}")
+				await ctx.send(
+					error,
+					reference=ctx.message,
+					delete_after=300,
+				)
+			if ctx.command is None:
+				raise Exception(f"{__class__.__name__}/error: {error} // type {type(error)}")
+			raise Exception(f"{__class__.__name__}/{ctx.command}/error: {error} // type {type(error)}")
+		except Exception as e:
+			await self.error(
+				e,
+				guild=ctx.guild
+			)

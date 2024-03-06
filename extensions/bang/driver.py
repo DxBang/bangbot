@@ -1,54 +1,145 @@
-
-
 import discord
 from discord import app_commands
 from discord.ext import commands
+import traceback
+import json
+import re
+import sys
+from genericpath import exists
 
 
-class DriverModal(discord.ui.Modal, title="Driver Information"):
+class DriverInformation(discord.ui.Modal):
+	# get the driver number and gamertag and rename the user nickname to #number gamertag
+	def __init__(self, bot:commands.Bot, interaction:discord.Interaction) -> None:
+		super().__init__(title="Driver Information")
+		label = bot.get_config(interaction.guild, "label", "driver")
+		self.number = discord.ui.TextInput(
+			label = label["number"]["name"],
+		placeholder = label["number"]["description"],
+			style = discord.TextStyle.short,
+			required = True,
+		)
+		self.add_item(self.number)
+		self.gamertag = discord.ui.TextInput(
+			label = label["gamertag"]["name"],
+			placeholder = label["gamertag"]["description"],
+			style = discord.TextStyle.short,
+			required = True,
+		)
+		self.bot = bot
+		self.add_item(self.gamertag)
 
-	platform:str = discord.ui.Select(
-		placeholder = 'Platform',
-		options = [
-			discord.SelectOption(label = 'PC', value = 'PC'),
-			discord.SelectOption(label = 'Xbox', value = 'Xbox'),
-			discord.SelectOption(label = 'Playstation', value = 'Playstation')
-		],
-	)
-	number:int = discord.ui.TextInput(
-		label = "Driver Number",
-		style = discord.TextStyle.short,
-		placeholder = "Number",
-		min_length = 1,
-		max_length = 3,
-		required = True,
-	)
-	gamerTag:str = discord.ui.TextInput(
-		label = "Gamer Tag",
-		style = discord.TextStyle.short,
-		placeholder = "Gamer Tag",
-		min_length = 3,
-		max_length = 32,
-		required = True,
-	)
-	async def on_submit(self, interaction: discord.Interaction) -> None:
-		return await super().on_submit(interaction)
 
-	def __init__(self):
-		super().__init__()
+	async def on_submit(self, interaction:discord.Interaction) -> None:
+		number = self.number.value
+		# make sure the number is a number
+		if not number.isdigit():
+			await interaction.response.send_message(
+				"Please enter a valid number",
+				ephemeral=True,
+			)
+			return
+		# make sure the number is between 1 and 999
+		if int(number) < 1 or int(number) > 999:
+			await interaction.response.send_message(
+				"Please enter a number between 1 and 999",
+				ephemeral=True,
+			)
+			return
+		# convert the number to a int
+		number = int(number)
+		gamertag = self.gamertag.value
+		# make sure the gamertag is not empty
+		if len(gamertag) == 0:
+			await interaction.response.send_message(
+				"Please enter a gamertag",
+				ephemeral=True,
+			)
+			return
+		# make sure the gamertag is less than 32 characters
+		if len(gamertag) > 32:
+			await interaction.response.send_message(
+				"Please enter a gamertag less than 32 characters",
+				ephemeral=True,
+			)
+			return
+		# make sure the gamertag is alphanumeric or has # or - or space (not tab or newline)
+		if not re.match(r"^[a-zA-Z0-9# -]+$", gamertag):
+			await interaction.response.send_message(
+				"Please enter a gamertag that is alphanumeric or has # or -",
+				ephemeral=True,
+			)
+			return
 
-class MyView(discord.ui.View):
-    @discord.ui.button(label='Click me!', style=discord.ButtonStyle.primary)
-    async def click(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('Button clicked!')
+		jsonFile = f"{sys.path[0]}/guild/{interaction.guild.id}.drivers.json"
 
-class MyModal(discord.ui.Modal):
-    def __init__(self):
-        super().__init__(title="My Modal")
+		# open the driver json file from the guild folder guild_id.drivers.json, create it if it doesn't exist
+		if not exists(jsonFile):
+			drivers = {}
+			with open(jsonFile, "w") as file:
+				json.dump(drivers, file, indent="\t")
+		else:
+			with open(jsonFile, "r") as file:
+				drivers = json.load(file)
+		"""
+		format:
+		{
+			"152588151314055168": {
+				"number": "21",
+				"gamertag": "DxBang"
+			}
+		}
+		"""
+		# check if the number has already been taken by another user
+		for driver, data in drivers.items():
+			if data["number"] == number and driver != interaction.user.id:
+				await interaction.response.send_message(
+					"This number has already been taken",
+					ephemeral=True,
+				)
+				return
+		# check if the user.id is already in the json file, if it is, update the gamertag, if it isn't, add the user.id and gamertag to the json file
+		id = str(interaction.user.id)
+		if id in drivers:
+			drivers[id]["number"] = number
+			drivers[id]["gamertag"] = gamertag
+		else:
+			drivers[id] = {
+				"number": number,
+				"gamertag": gamertag,
+			}
+		# write the json file
+		with open(jsonFile, "w") as file:
+			json.dump(drivers, file, indent="\t")
+		nick = f"#{number} {gamertag}"
+		# check that the bot has the manage nicknames permission
+		if not interaction.guild.me.guild_permissions.manage_nicknames:
+			await interaction.response.send_message(
+				"I don't have permission to manage nicknames",
+				ephemeral=True,
+			)
+			return
+		# check that the bot has a higher role than the user
+		if interaction.guild.me.top_role.position <= interaction.user.top_role.position:
+			await interaction.response.send_message(
+				f"I don't have a higher role than you, please set your nickname manually to {nick}",
+				ephemeral=True,
+			)
+			return
+		# rename the user nickname to #number gamertag
+		await interaction.user.edit(
+			nick=nick,
+		)
 
-    @discord.ui.button(label='Click me!', style=discord.ButtonStyle.primary)
-    async def click(self, button: discord.ui.Button, interaction: discord.Interaction):
-        await interaction.response.send_message('Button clicked!')
+		# send a message to the user
+		await interaction.response.send_message(
+			f"Your number is #{number} and your gamertag is {gamertag}",
+			ephemeral=True,
+		)
+		# send a message to the channel
+		await interaction.channel.send(
+			f"{interaction.user.mention} has been assigned number #{number} and gamertag {gamertag}",
+		)
 
 class Driver(commands.Cog, name="Driver"):
 	__slots__ = (
@@ -60,45 +151,93 @@ class Driver(commands.Cog, name="Driver"):
 		except Exception as e:
 			raise e
 
-	@commands.command(
-		hidden = False,
+	@app_commands.command(
+		name = "driver",
+		description = "Driver Information",
 	)
-	async def sync(self, ctx:commands.Context) -> None:
+	async def driver(self, interaction:discord.Interaction) -> None:
 		try:
-			synced = await self.bot.sync(guild = ctx.guild)
-			print(f"Synced {ctx.guild.name} with {len(synced)} command(s)")
-			await ctx.send(
-				f"Synced {ctx.guild.name} with {len(synced)} command(s)."
+			print(interaction)
+			await interaction.response.send_modal(
+				DriverInformation(
+					bot = self.bot,
+					interaction = interaction,
+				)
 			)
-
 		except Exception as e:
+			traceback.print_exc()
 			raise e
 
 	@commands.command(
-		description = "Register as a driver.",
-		hidden = False,
+		name = "add_driver",
+		description = "Add Driver Information",
 	)
-	async def driver(self, interaction:discord.Interaction) -> None:
-		# send modal
-		await interaction.response.send_modal(
-			modal = DriverModal(),
-			#epehemeral = True
-		)
+	@commands.has_permissions(manage_nicknames=True)
+	async def add_driver(self, ctx:commands.Context, member:discord.Member, number:int, gamertag:str) -> None:
+		try:
+			jsonFile = f"{sys.path[0]}/guild/{ctx.guild.id}.drivers.json"
+			# open the driver json file from the guild folder guild_id.drivers.json, create it if it doesn't exist
+			if not exists(jsonFile):
+				drivers = {}
+				with open(jsonFile, "w") as file:
+					json.dump(drivers, file, indent="\t")
+			else:
+				with open(jsonFile, "r") as file:
+					drivers = json.load(file)
+			"""
+			format:
+			{
+				152588151314055168: {
+					"number": "21",
+					"gamertag": "DxBang"
+				}
+			}
+			"""
+			# check if the number has already been taken by another user
+			for driver, data in drivers.items():
+				if data["number"] == number and driver != member.id:
+					await ctx.send(
+						"This number has already been taken",
+					)
+					return
+			# check if the user.id is already in the json file, if it is, update the gamertag, if it isn't, add the user.id and gamertag to the json file
+			id = str(member.id)
+			if id in drivers:
+				drivers[id]["number"] = number
+				drivers[id]["gamertag"] = gamertag
+			else:
+				drivers[id] = {
+					"number": number,
+					"gamertag": gamertag,
+				}
+			# write the json file
+			with open(jsonFile, "w") as file:
+				json.dump(drivers, file, indent="\t")
+			nick = f"#{number} {gamertag}"
+			# check that the bot has the manage nicknames permission
+			if not ctx.guild.me.guild_permissions.manage_nicknames:
+				await ctx.send(
+					"I don't have permission to manage nicknames",
+				)
+				return
+			# check that the bot has a higher role than the user
+			if ctx.guild.me.top_role.position <= member.top_role.position:
+				await ctx.send(
+					f"I don't have a higher role than {member.mention}, please set your nickname manually to {nick}",
+				)
+				return
+			# rename the user nickname to #number gamertag
+			await member.edit(
+				nick=nick,
+			)
+			# send a message to the user and the channel
+			await ctx.send(
+				f"{member.mention} has been assigned number #{number} and gamertag {gamertag}",
+			)
+		except Exception as e:
+			traceback.print_exc()
+			raise e
 
-	@commands.command()
-	async def testview(self, ctx):
-		view = MyView()
-		await ctx.send('Here is a view:', view=view)
-
-	@app_commands.command(
-		name = "testmodal",
-		description = "Test a modal."
-	)
-	async def testmodal(self, interaction:discord.Interaction):
-		await interaction.response.send_modal(
-			modal = MyModal(),
-			#epehemeral = True
-		)
 
 
 async def setup(bot:commands.Bot) -> None:
@@ -106,7 +245,8 @@ async def setup(bot:commands.Bot) -> None:
 		await bot.add_cog(
 			Driver(
 				bot
-			)
+			),
+			guilds=bot.guilds,
 		)
 	except Exception as e:
 		raise e
