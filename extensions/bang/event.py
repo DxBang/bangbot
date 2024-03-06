@@ -39,17 +39,17 @@ class Event(commands.Cog, name="Event Management"):
 			label = self.bot.get_config(ctx.guild, "label", "event")
 			config = self.bot.get_config(ctx.guild, "event")
 			embed.add_field(
-				name = label["accept"]["name"],
+				name = f"{label['accept']['emoji']} {label['accept']['name']}",
 				value = "\n",
 				inline = True,
 			)
 			embed.add_field(
-				name = label["maybe"]["name"],
+				name = f"{label['maybe']['emoji']} {label['maybe']['name']}",
 				value = "\n",
 				inline = True,
 			)
 			embed.add_field(
-				name = label["decline"]["name"],
+				name = f"{label['decline']['emoji']} {label['decline']['name']}",
 				value = "\n",
 				inline = True,
 			)
@@ -74,9 +74,9 @@ class Event(commands.Cog, name="Event Management"):
 				embed = embed,
 				files = files,
 			)
-			await message.add_reaction(label["accept"]["emoji"])
-			await message.add_reaction(label["maybe"]["emoji"])
-			await message.add_reaction(label["decline"]["emoji"])
+			await message.add_reaction(label['accept']['emoji'])
+			await message.add_reaction(label['maybe']['emoji'])
+			await message.add_reaction(label['decline']['emoji'])
 		except Exception as e:
 			await self.bot.error(
 				e,
@@ -98,9 +98,9 @@ class Event(commands.Cog, name="Event Management"):
 			if len(embed.fields) != 3:
 				return
 			fields = embed.fields
-			if fields[0].name != label["accept"]["name"] and\
-				fields[1].name != label["maybe"]["name"] and\
-				fields[2].name != label["decline"]["name"]:
+			if fields[0].name != f"{label['accept']['emoji']} {label['accept']['name']}" and\
+				fields[1].name != f"{label['maybe']['emoji']} {label['maybe']['name']}" and\
+				fields[2].name != f"{label['decline']['emoji']} {label['decline']['name']}":
 				print("not an event message")
 				return
 			valid_reaction = []
@@ -123,28 +123,28 @@ class Event(commands.Cog, name="Event Management"):
 			elif user.mention in declines:
 				declines.remove(user.mention)
 			# add the user to the list
-			if emoji == label["accept"]["emoji"]:
+			if emoji == label['accept']['emoji']:
 				goings.append(user.mention)
-			elif emoji == label["maybe"]["emoji"]:
+			elif emoji == label['maybe']['emoji']:
 				maybes.append(user.mention)
-			elif emoji == label["decline"]["emoji"]:
+			elif emoji == label['decline']['emoji']:
 				declines.append(user.mention)
 			# update the embed
 			embed.set_field_at(
 				0,
-				name = label["accept"]["name"],
+				name = f"{label['accept']['emoji']} {label['accept']['name']}",
 				value = "\n".join(goings),
 				inline = True,
 			)
 			embed.set_field_at(
 				1,
-				name = label["maybe"]["name"],
+				name = f"{label['maybe']['emoji']} {label['maybe']['name']}",
 				value = "\n".join(maybes),
 				inline = True,
 			)
 			embed.set_field_at(
 				2,
-				name = label["decline"]["name"],
+				name = f"{label['decline']['emoji']} {label['decline']['name']}",
 				value = "\n".join(declines),
 				inline = True,
 			)
@@ -171,7 +171,7 @@ class Event(commands.Cog, name="Event Management"):
 				return
 			if len(message.embeds) == 0:
 				return
-			label = self.bot.get_config(message.guild, "event")
+			label = self.bot.get_config(message.guild, "label", "event")
 			embed = message.embeds[0]
 			if len(embed.fields) != 3:
 				return
@@ -180,33 +180,31 @@ class Event(commands.Cog, name="Event Management"):
 			maybes = fields[1].value.split("\n")
 			declines = fields[2].value.split("\n")
 			if message.author.id != self.bot.user.id:
-				print("not a bot message")
 				return
 			if len(message.embeds) == 0:
-				print("no embed")
 				return
 			emoji = str(payload.emoji)
-			if emoji == label["accept"]["emoji"] and user.mention in goings:
+			if emoji == label['accept']['emoji'] and user.mention in goings:
 				goings.remove(user.mention)
-			elif emoji == label["maybe"]["emoji"] and user.mention in maybes:
+			elif emoji == label['maybe']['emoji'] and user.mention in maybes:
 				maybes.remove(user.mention)
-			elif emoji == label["decline"]["emoji"] and user.mention in declines:
+			elif emoji == label['decline']['emoji'] and user.mention in declines:
 				declines.remove(user.mention)
 			embed.set_field_at(
 				0,
-				name = label["accept"]["name"],
+				name = f"{label['accept']['emoji']} {label['accept']['name']}",
 				value = "\n".join(goings),
 				inline = True,
 			)
 			embed.set_field_at(
 				1,
-				name = label["maybe"]["name"],
+				name = f"{label['maybe']['emoji']} {label['maybe']['name']}",
 				value = "\n".join(maybes),
 				inline = True,
 			)
 			embed.set_field_at(
 				2,
-				name = label["decline"]["name"],
+				name = f"{label['decline']['emoji']} {label['decline']['name']}",
 				value = "\n".join(declines),
 				inline = True,
 			)
