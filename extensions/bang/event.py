@@ -98,10 +98,11 @@ class Event(commands.Cog, name="Event Management"):
 			if len(embed.fields) != 3:
 				return
 			fields = embed.fields
-			if fields[0].name != f"{label['accept']['emoji']} {label['accept']['name']}" and\
-				fields[1].name != f"{label['maybe']['emoji']} {label['maybe']['name']}" and\
-				fields[2].name != f"{label['decline']['emoji']} {label['decline']['name']}":
-				print("not an event message")
+			if label['accept']['emoji'] not in fields[0].name and label['accept']['name'] not in fields[0].name:
+				return
+			if label['maybe']['emoji'] not in fields[1].name and label['maybe']['name'] not in fields[1].name:
+				return
+			if label['decline']['emoji'] not in fields[2].name and label['decline']['name'] not in fields[2].name:
 				return
 			valid_reaction = []
 			for er in label:
@@ -114,7 +115,6 @@ class Event(commands.Cog, name="Event Management"):
 			#if message.author.id != self.bot.user.id:
 			#	return
 			emoji = str(payload.emoji)
-			print(f"emoji: {emoji}")
 			# remove the user from the list
 			if user.mention in goings:
 				goings.remove(user.mention)
@@ -176,6 +176,12 @@ class Event(commands.Cog, name="Event Management"):
 			if len(embed.fields) != 3:
 				return
 			fields = embed.fields
+			if label['accept']['emoji'] not in fields[0].name and label['accept']['name'] not in fields[0].name:
+				return
+			if label['maybe']['emoji'] not in fields[1].name and label['maybe']['name'] not in fields[1].name:
+				return
+			if label['decline']['emoji'] not in fields[2].name and label['decline']['name'] not in fields[2].name:
+				return
 			goings = fields[0].value.split("\n")
 			maybes = fields[1].value.split("\n")
 			declines = fields[2].value.split("\n")
@@ -184,33 +190,39 @@ class Event(commands.Cog, name="Event Management"):
 			if len(message.embeds) == 0:
 				return
 			emoji = str(payload.emoji)
+			update = False
 			if emoji == label['accept']['emoji'] and user.mention in goings:
 				goings.remove(user.mention)
+				update = True
 			elif emoji == label['maybe']['emoji'] and user.mention in maybes:
 				maybes.remove(user.mention)
+				update = True
 			elif emoji == label['decline']['emoji'] and user.mention in declines:
 				declines.remove(user.mention)
-			embed.set_field_at(
-				0,
-				name = f"{label['accept']['emoji']} {label['accept']['name']}",
-				value = "\n".join(goings),
-				inline = True,
-			)
-			embed.set_field_at(
-				1,
-				name = f"{label['maybe']['emoji']} {label['maybe']['name']}",
-				value = "\n".join(maybes),
-				inline = True,
-			)
-			embed.set_field_at(
-				2,
-				name = f"{label['decline']['emoji']} {label['decline']['name']}",
-				value = "\n".join(declines),
-				inline = True,
-			)
-			await message.edit(
-				embed = embed,
-			)
+				update = True
+			if update:
+				print("update")
+				embed.set_field_at(
+					0,
+					name = f"{label['accept']['emoji']} {label['accept']['name']}",
+					value = "\n".join(goings),
+					inline = True,
+				)
+				embed.set_field_at(
+					1,
+					name = f"{label['maybe']['emoji']} {label['maybe']['name']}",
+					value = "\n".join(maybes),
+					inline = True,
+				)
+				embed.set_field_at(
+					2,
+					name = f"{label['decline']['emoji']} {label['decline']['name']}",
+					value = "\n".join(declines),
+					inline = True,
+				)
+				await message.edit(
+					embed = embed,
+				)
 		except Exception as e:
 			print(f"error: {e}")
 			raise e
