@@ -5,7 +5,7 @@ import os
 #import sys
 import json
 import ftplib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import re
 #import discord
 #from PIL import Image, ImageDraw, ImageFont
@@ -216,6 +216,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 
 	def get_results(self, config, pattern:str) -> list | None:
 		try:
+			print(f"get_results: {pattern}")
 			if (('host' not in config or config['host'] is None) or
 				('port' not in config or config['port'] is None) or
 				('user' not in config or config['user'] is None) or
@@ -252,6 +253,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 
 	def load_result(self, filename:str) -> dict:
 		try:
+			print(f"load_result: {filename}")
 			with open(filename, "rb") as f:
 				data = json.load(f)
 			drivers = []
@@ -399,9 +401,12 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			}
 		except Exception as e:
 			self.bot.warn(e)
+			raise e
+
 
 	async def handle_result(self, ctx:commands.Context, file:str, date:datetime) -> None:
 		try:
+			print(f"handle_result: {file}")
 			data = self.load_result(file)
 			# example data = tmp/output.json
 			# save the result to a file with tab separated values
@@ -506,39 +511,39 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				embed = embed
 			)
 		except Exception as e:
-			await self.bot.error(e, guild=ctx.guild)
+			await self.bot.error(
+				e,
+				guild=ctx.guild
+			)
+			raise e
 
 	async def handle_request(self, ctx:commands.Context, session:str, date:str = None, time:str = None) -> None:
 		try:
+			print(f"handle_request: {session} {date} {time}")
 			config = self.bot.get_config(ctx.guild, "connect", "acc")
 			if config is None:
 				raise ValueError("ACC Dedicated Server configuration not found.")
 			if session not in ["FP", "Q", "R"]:
 				raise ValueError("Session must be one of **FP**, **Q**, **R**.")
 			if date is None:
-				date = datetime.now()
-				date_str = date.strftime("%-d %B %Y")
+				date = datetime.now(timezone.utc)
 			elif date.lower() == "today":
-				date = datetime.now()
-				date_str = date.strftime("%-d %B %Y")
+				date = datetime.now(timezone.utc)
 			elif date.lower() == "yesterday":
 				date = datetime.now() - timedelta(days=1)
-				date_str = date.strftime("%-d %B %Y")
+			elif re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
+				date = datetime.strptime(date, "%y%m%d")
+			elif re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
+				date = datetime.strptime(date, "%Y%m%d")
+			elif re.match(r"^[0-9]{4}-[0-1]?[0-9]-[0-3]?[0-9]$", date):
+				date = datetime.strptime(date, "%Y-%m-%d")
+			elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{2}$", date):
+				date = datetime.strptime(date, "%d/%m/%y")
+			elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
+				date = datetime.strptime(date, "%d/%m/%Y")
 			else:
-				# check if date is valid yymmdd or yyyy-mm-dd or dd/mm/yyyy
-				if re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-					date = datetime.strptime(date, "%y%m%d")
-				elif re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-					date = datetime.strptime(date, "%Y%m%d")
-				elif re.match(r"^[0-9]{4}-[0-1]?[0-9]-[0-3]?[0-9]$", date):
-					date = datetime.strptime(date, "%Y-%m-%d")
-				elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{2}$", date):
-					date = datetime.strptime(date, "%d/%m/%y")
-				elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
-					date = datetime.strptime(date, "%d/%m/%Y")
-				else:
-					raise ValueError("Invalid date format.")
-				date_str = date.strftime("%-d %B %Y")
+				raise ValueError("Invalid date format.")
+			date_str = date.strftime("%d %B %Y")
 			if time is None:
 				time = r"\d{6}"
 				time_str = "any time"
@@ -598,14 +603,17 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				date = date,
 			)
 		except ValueError as e:
+			traceback.print_exc()
 			await ctx.send(
 				content = f"Error: {e}"
 			)
 		except Exception as e:
+			traceback.print_exc()
 			await self.bot.error(
 				e,
 				guild = ctx.guild,
 			)
+			raise e
 
 	@commands.command(
 		description = "Get the results of the date",
@@ -620,6 +628,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	@commands.guild_only()
 	async def race(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
 		try:
+			print(f"race")
 			await self.handle_request(
 				ctx = ctx,
 				session = "R",
@@ -651,6 +660,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	@commands.guild_only()
 	async def qualify(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
 		try:
+			print(f"qualify")
 			await self.handle_request(
 				ctx = ctx,
 				session = "Q",
@@ -682,6 +692,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	@commands.guild_only()
 	async def practice(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
 		try:
+			print(f"practice")
 			await self.handle_request(
 				ctx = ctx,
 				session = "FP",
