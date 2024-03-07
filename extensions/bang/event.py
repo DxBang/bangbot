@@ -53,6 +53,9 @@ class Event(commands.Cog, name="Event Management"):
 				value = "\n",
 				inline = True,
 			)
+			mention = None
+			if len(ctx.message.role_mentions) > 0:
+				mention = " ".join([role.mention for role in ctx.message.role_mentions])
 			files = None
 			if len(ctx.message.attachments) > 0:
 				if config["attachment"]["thumbnail"]:
@@ -71,6 +74,7 @@ class Event(commands.Cog, name="Event Management"):
 					)
 			await ctx.message.delete()
 			message = await ctx.send(
+				content = mention,
 				embed = embed,
 				files = files,
 			)
@@ -97,12 +101,25 @@ class Event(commands.Cog, name="Event Management"):
 			if len(message.embeds) == 0:
 				return
 			roles = self.bot.get_config(message.guild, "event", "roles")
-			# roles format: [729023577977782322, 729023577977782324]
-			if len(roles) > 0:
+			# roles format: [729023577977782322, 729023577977782324] or boolean True|False
+			if isinstance(roles, list) and len(roles) > 0:
+				found = False
 				for role in roles:
-					if role not in [role.id for role in member.roles]:
-						return await message.remove_reaction(payload.emoji, member)
-
+					if role in [role.id for role in member.roles]:
+						found = True
+						break
+				if not found:
+					return await message.remove_reaction(payload.emoji, member)
+			elif isinstance(roles, bool) and roles == True:
+				roles = [role.id for role in message.role_mentions]
+				found = False
+				if len(roles) > 0:
+					for role in roles:
+						if role in [role.id for role in member.roles]:
+							found = True
+							break
+				if not found:
+					return await message.remove_reaction(payload.emoji, member)
 			label = self.bot.get_config(message.guild, "label", "event")
 			embed = message.embeds[0]
 			if len(embed.fields) != 3:
@@ -209,7 +226,6 @@ class Event(commands.Cog, name="Event Management"):
 				declines.remove(member.mention)
 				update = True
 			if update:
-				print("update")
 				embed.set_field_at(
 					0,
 					name = f"{label['accept']['emoji']} {label['accept']['name']}",
