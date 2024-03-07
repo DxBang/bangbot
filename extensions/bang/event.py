@@ -112,14 +112,15 @@ class Event(commands.Cog, name="Event Management"):
 					return await message.remove_reaction(payload.emoji, member)
 			elif isinstance(roles, bool) and roles == True:
 				roles = [role.id for role in message.role_mentions]
-				found = False
 				if len(roles) > 0:
-					for role in roles:
-						if role in [role.id for role in member.roles]:
-							found = True
-							break
-				if not found:
-					return await message.remove_reaction(payload.emoji, member)
+					found = False
+					if len(roles) > 0:
+						for role in roles:
+							if role in [role.id for role in member.roles]:
+								found = True
+								break
+					if not found:
+						return await message.remove_reaction(payload.emoji, member)
 			label = self.bot.get_config(message.guild, "label", "event")
 			embed = message.embeds[0]
 			if len(embed.fields) != 3:
