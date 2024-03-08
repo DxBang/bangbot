@@ -49,7 +49,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -78,7 +78,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -170,7 +170,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				reference=ctx.message,
 			)
 		except Exception as e:
-			await self.bot.error(e, guild=ctx.guild)
+			await self.bot.error(
+				e,
+				ctx = ctx,
+			)
 
 
 	@commands.command(
@@ -191,7 +194,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -209,7 +212,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -227,7 +230,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -245,7 +248,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -280,7 +283,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -314,7 +317,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -349,7 +352,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -384,7 +387,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -419,7 +422,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -455,7 +458,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -488,7 +491,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -520,7 +523,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -552,7 +555,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -584,7 +587,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -616,7 +619,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -649,7 +652,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -679,8 +682,27 @@ class Systems(commands.Cog, name="Bang Systems"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
+
+	"""
+	@commands.command(
+		description = "Simulate log",
+		hidden = True,
+	)
+	async def log(self, ctx:commands.Context, *, text:str):
+		try:
+			await self.bot.log(
+				text,
+				ctx = ctx,
+			)
+		except Exception as e:
+			await self.bot.error(
+				e,
+				ctx = ctx,
+			)
+	"""
+
 
 
 async def setup(bot:commands.Bot) -> None:

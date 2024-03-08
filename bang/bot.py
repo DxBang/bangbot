@@ -17,6 +17,7 @@ def cprint(message:str, fg:str="white", bg:str="black", end:str="\n") -> None:
 		"red": 31,
 		"green": 32,
 		"orange": 33,
+		"yellow": 33,
 		"blue": 34,
 		"magenta": 35,
 		"purple": 35,
@@ -26,27 +27,31 @@ def cprint(message:str, fg:str="white", bg:str="black", end:str="\n") -> None:
 		"bright_red": 91,
 		"pink": 91,
 		"bright_green": 92,
-		"yellow": 93,
+		"bright_yellow": 93,
 		"bright_blue": 94,
 		"bright_magenta": 95,
 		"bright_purple": 95,
 		"bright_cyan": 96,
+		"bright_white": 97,
+
 	}.get(fg, 37)
 	bg:int = {
 		"black": 40,
 		"red": 41,
 		"green": 42,
 		"orange": 43,
+		"yellow": 43,
 		"blue": 44,
 		"magenta": 45,
 		"purple": 45,
 		"cyan": 46,
 		"white": 47,
+		"dark_gray": 100,
 		"gray": 100,
 		"bright_red": 101,
 		"pink": 101,
 		"bright_green": 102,
-		"yellow": 103,
+		"bright_yellow": 103,
 		"bright_blue": 104,
 		"bright_magenta": 105,
 		"bright_purple": 105,
@@ -298,7 +303,7 @@ class Bang(commands.Bot):
 				self.config["default"]["main"]
 			)
 		except Exception as e:
-			self.warn(e)
+			self.debug(e)
 
 	def get_default(self, *args) -> list | dict | int | str | bool | None:
 		try:
@@ -311,7 +316,7 @@ class Bang(commands.Bot):
 				break
 			return config
 		except Exception as e:
-			self.warn(e)
+			self.debug(e)
 
 	def get_config(self, guild:discord.Guild = None, *args) -> list | dict | int | str | bool | None:
 		try:
@@ -330,7 +335,7 @@ class Bang(commands.Bot):
 				return config
 			return self.get_default(*args)
 		except Exception as e:
-			self.warn(e)
+			self.debug(e)
 
 	def get_temp(self) -> str:
 		try:
@@ -343,14 +348,14 @@ class Bang(commands.Bot):
 			)
 			#return tempfile.gettempdir()
 		except Exception as e:
-			self.warn(e)
+			self.debug(e)
 
 	def uptime(self) -> str:
 		try:
 			delta = datetime.now(timezone.utc) - self.data["service"]
 			return str(delta).split(".")[0]
 		except Exception as e:
-			self.warn(e)
+			self.debug(e)
 
 	def datasize(self, bytes:int) -> str:
 		try:
@@ -362,7 +367,7 @@ class Bang(commands.Bot):
 				return f"{bytes / 1048576:.2f} MB"
 			return f"{bytes / 1073741824:.2f} GB"
 		except Exception as e:
-			self.warn(e)
+			self.debug(e)
 
 
 	def embed(self,
@@ -426,39 +431,47 @@ class Bang(commands.Bot):
 				)
 			return embed
 		except Exception as e:
-			self.warn(
+			self.debug(
 				e
 			)
 
-	async def download_attachment(self, attachment:discord.Attachment) -> discord.File:
+	async def download_attachment(self, attachment:discord.Attachment, subfolder:str = None) -> discord.File:
 		try:
+			temp = self.get_temp()
+			if subfolder is not None:
+				temp = os.path.join(
+					temp,
+					subfolder
+				)
+				if not os.path.exists(temp):
+					os.makedirs(temp)
 			path = os.path.join(
-				self.get_temp(),
+				temp,
 				attachment.filename
 			)
 			await attachment.save(
-				path
+				fp = path
 			)
 			return discord.File(
-				path,
-				filename=attachment.filename
+				fp = path,
+				filename = attachment.filename
 			)
 		except Exception as e:
-			self.warn(
+			self.debug(
 				e,
 			)
 
-	async def download_attachments(self, attachments:list) -> list:
+	async def download_attachments(self, attachments:list, subfolder:str = None) -> list:
 		try:
 			# use discord.file()
 			files = []
 			for attachment in attachments:
 				files.append(
-					await self.download_attachment(attachment)
+					await self.download_attachment(attachment, subfolder)
 				)
 			return files
 		except Exception as e:
-			self.warn(
+			self.debug(
 				e
 			)
 
@@ -466,77 +479,70 @@ class Bang(commands.Bot):
 	async def error(
 			self,
 			error:str,
-			guild:discord.Guild = None,
-			message:discord.Message = None,
+			ctx:commands.Context,
 		) -> None:
 		frame = sys._getframe(1)
 		section = f"{frame.f_locals['self'].__class__.__name__}/{frame.f_code.co_name}"
-		print(f"\033[1;31mERROR: {section}: {error}\033[0m")
-		traceback.print_exc()
+		cprint(message=f"ERROR: {section}: {error}", fg="bright_red", bg="gray")
 		trace = traceback.format_exc()
-		if guild is None:
-			guild = self.main_guild()
+		await ctx.send(
+			content = f"**Error:** {error}",
+			reference = ctx.message,
+			delete_after = 60,
+		)
 		await self.log(
-			guild = guild,
+			ctx = ctx,
 			log = f"{section}/error: {error}\n"\
-				f"```{trace[:1000]}```",
-			message = message,
+				f"```{trace[:1000]}```"
 		)
 
-	def warn(
+	async def warn(
 			self,
 			warn:str,
+			ctx:commands.Context,
 		) -> None:
 		frame = sys._getframe(1)
 		section = f"{frame.f_locals['self'].__class__.__name__}/{frame.f_code.co_name}"
-		trace = traceback.format_exc()
-		print(f"\033[1;31mERROR: {section}: {warn}\033[0m")
-		print(f"TRACE:\n{trace}")
+		cprint(message=f"WARNING: {section}: {warn}", fg="orange", bg="gray")
+		await ctx.send(
+			content = f"**Warning:** {warn}",
+			reference = ctx.message,
+			delete_after = 60,
+		)
 
-	# log
 	async def log(self,
-			guild:discord.Guild = None,
-			log:str = None,
-			message:discord.Message = None,
-			files:list = None
+			log:str,
+			ctx:commands.Context,
 		) -> None:
 		try:
-			return
-			print(f"LOG: {guild}: {log}")
-			if guild is None:
-				guild = self.main_guild()
-			if log is None:
-				log = self.datetime(datetime.now(timezone.utc))
-			channel = self.get_config(guild, "channel", "log")
-			if channel is None:
+			cprint(f"LOG: {ctx.guild}: {log}", fg="cyan")
+			message = ctx.message
+			log_channel = self.get_config(ctx.guild, "channel", "log")
+			if log_channel is None:
 				return
-			channel = self.get_channel(channel)
-			if channel is None:
-				return
+			log_channel = self.get_channel(log_channel)
 			embed = self.embed(
-				ctx = channel,
-				guild = guild,
-				member = guild.me,
+				ctx = ctx,
 				title = f"{__class__.__name__}.{sys._getframe(1).f_code.co_name}",
 				description = log,
 				bot = True,
-				thumbnail = False,
-				author = False,
 			)
 			if message is not None:
-				embed.add_field(
-					name = "Channel",
-					value = message.channel.mention,
-					inline = True,
-				)
+				if message.channel.type == discord.ChannelType.private:
+					embed.add_field(
+						name = "Channel",
+						value = "Private",
+						inline = True,
+					)
+				elif message.channel.type == discord.ChannelType.text:
+					embed.add_field(
+						name = "Channel",
+						value = message.channel.mention,
+						inline = True,
+					)
 				embed.add_field(
 					name = "Author",
 					value = message.author.mention,
-					inline = True,
-				)
-				embed.add_field(
-					name = "Created",
-					value = self.datetime(message.created_at),
 					inline = True,
 				)
 				embed.add_field(
@@ -544,33 +550,38 @@ class Bang(commands.Bot):
 					value = message.content,
 					inline = False,
 				)
-			if not files:
-				return await channel.send(
-					embed = embed
-				)
-			uploads = []
-			filenames = []
-			if files is not None:
-				for file in files:
-					filenames.append(
-						file["name"]
+				files = None
+				if len(message.attachments) > 0:
+					files = await self.download_attachments(message.attachments, "log")
+					embed.add_field(
+						name = "Attachments",
+						value = "\n".join([file.filename for file in files]),
+						inline = False,
 					)
-					uploads.append(
-						discord.File(
-							file["path"],
-							filename=file["name"]
-						)
-					)
-			await channel.send(
+			await log_channel.send(
 				embed = embed,
-				files = uploads,
+				files = files,
 			)
-			if files is not None:
+			if isinstance(files, list) and len(files) > 0:
 				for file in files:
-					os.unlink(file["path"])
+					file.close()
+					os.remove(file.fp.name)
 		except Exception as e:
-			print(f"{__class__.__name__}/{sys._getframe(0).f_code.co_name}/error: {e}")
+			cprint(
+				message = f"{__class__.__name__}/{sys._getframe(0).f_code.co_name}/error: {e}",
+				fg = "red",
+				bg = "white"
+			)
 			traceback.print_exc()
+
+	def debug(
+			self,
+			debug:str,
+		) -> None:
+		frame = sys._getframe(1)
+		section = f"{frame.f_locals['self'].__class__.__name__}/{frame.f_code.co_name}"
+		cprint(message=f"DEBUG: {section}: {debug}", fg="bright_magenta", bg="gray")
+		traceback.print_exc()
 
 	@commands.Cog.listener()
 	async def on_command_error(self, ctx:commands.Context, error:commands.CommandError) -> None:
@@ -592,10 +603,10 @@ class Bang(commands.Bot):
 					random.choice(
 						self.get_config(ctx.guild, "response", "error_command_cooldown")
 					).format(
-						author=ctx.author.mention,
-						command=ctx.command,
-						cooldown=cooldown,
-						type=error.type,
+						author = ctx.author.mention,
+						command = ctx.command,
+						cooldown = cooldown,
+						type = error.type,
 					),
 					reference=ctx.message,
 					delete_after=300,
@@ -605,36 +616,34 @@ class Bang(commands.Bot):
 					random.choice(
 						self.get_config(ctx.guild, "response", "error_command_disabled")
 					).format(
-						author=ctx.author.mention,
-						command=ctx.command,
+						author = ctx.author.mention,
+						command = ctx.command,
 					),
-					reference=ctx.message,
-					delete_after=300,
+					reference = ctx.message,
+					delete_after = 300,
 				)
 			elif isinstance(error, commands.MissingRequiredArgument):
-
 				return await ctx.send(
 					random.choice(
 						self.get_config(ctx.guild, "response", "error_command_missing_argument")
 					).format(
-						author=ctx.author.mention,
-						command=ctx.command,
-						param=error.param,
+						author = ctx.author.mention,
+						command = ctx.command,
+						param = error.param,
 					),
-					reference=ctx.message,
-					delete_after=300,
+					reference = ctx.message,
+					delete_after = 300,
 				)
-
 			elif isinstance(error, commands.CommandNotFound):
 				return await ctx.send(
 					random.choice(
 						self.get_config(ctx.guild, "response", "error_command_not_found")
 					).format(
-						author=ctx.author.mention,
-						command=ctx.command,
+						author = ctx.author.mention,
+						command = ctx.command,
 					),
-					reference=ctx.message,
-					delete_after=300,
+					reference = ctx.message,
+					delete_after = 300,
 				)
 
 			elif isinstance(error, commands.NoPrivateMessage):
@@ -643,8 +652,8 @@ class Bang(commands.Bot):
 						random.choice(
 							self.get_config(ctx.guild, "response", "error_command_not_in_private")
 						).format(
-							author=ctx.author.mention,
-							command=ctx.command,
+							author = ctx.author.mention,
+							command = ctx.command,
 						)
 					)
 				except:
@@ -655,60 +664,60 @@ class Bang(commands.Bot):
 						random.choice(
 							self.get_config(ctx.guild, "response", "error_command_bad_argument_tag")
 						).format(
-							author=ctx.author.mention,
-							command=ctx.command,
-							args=error.args
+							author = ctx.author.mention,
+							command = ctx.command,
+							args = error.args
 						),
-						reference=ctx.message,
-						delete_after=300,
+						reference = ctx.message,
+						delete_after = 300,
 					)
 				return await ctx.send(
 					random.choice(
 						self.get_config(ctx.guild, "response", "error_command_bad_argument")
 					).format(
-						author=ctx.author.mention,
-						command=ctx.command,
-						args=error.args
+						author = ctx.author.mention,
+						command = ctx.command,
+						args = error.args
 					),
-					reference=ctx.message,
-					delete_after=300,
+					reference = ctx.message,
+					delete_after = 300,
 				)
 			elif isinstance(error, commands.NotOwner):
 				return await ctx.send(
 					random.choice(
 						self.get_config(ctx.guild, "response", "error_command_not_owner")
 					).format(
-						author=ctx.author.mention,
-						command=ctx.command,
-						args=error.args
+						author = ctx.author.mention,
+						command = ctx.command,
+						args = error.args
 					),
-					reference=ctx.message,
-					delete_after=300,
+					reference = ctx.message,
+					delete_after = 300,
 				)
 			elif isinstance(error, commands.MissingPermissions):
 				return await ctx.send(
 					random.choice(
 						self.get_config(ctx.guild, "response", "error_command_missing_permissions")
 					).format(
-						author=ctx.author.mention,
-						command=ctx.command,
-						args=error.args
+						author = ctx.author.mention,
+						command = ctx.command,
+						args = error.args
 					),
-					reference=ctx.message,
-					delete_after=300,
+					reference = ctx.message,
+					delete_after = 300,
 				)
 			else:
 				print(f"{error} type {type(error)}")
 				await ctx.send(
 					error,
-					reference=ctx.message,
-					delete_after=300,
+					reference = ctx.message,
+					delete_after = 300,
 				)
 			if ctx.command is None:
 				raise Exception(f"{__class__.__name__}/error: {error} // type {type(error)}")
 			raise Exception(f"{__class__.__name__}/{ctx.command}/error: {error} // type {type(error)}")
 		except Exception as e:
 			await self.error(
-				e,
-				guild=ctx.guild
+				error = e,
+				ctx = ctx,
 			)

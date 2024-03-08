@@ -248,7 +248,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			self.ftp.quit()
 			return result
 		except Exception as e:
-			self.bot.warn(e)
+			self.bot.debug(e)
 			raise e
 
 	def load_result(self, filename:str) -> dict:
@@ -400,7 +400,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				"fastest": fastest,
 			}
 		except Exception as e:
-			self.bot.warn(e)
+			self.bot.debug(e)
 			raise e
 
 
@@ -511,10 +511,6 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				embed = embed
 			)
 		except Exception as e:
-			await self.bot.error(
-				e,
-				guild=ctx.guild
-			)
 			raise e
 
 	async def handle_request(self, ctx:commands.Context, session:str, date:str = None, time:str = None) -> None:
@@ -542,7 +538,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
 				date = datetime.strptime(date, "%d/%m/%Y")
 			else:
-				raise ValueError("Invalid date format.")
+				raise ValueError("Invalid date format. Try **YYMMDD**, **YYYYMMDD**, **YYYY-MM-DD**, or **DD/MM/YY**.")
 			date_str = date.strftime("%d %B %Y")
 			if time is None:
 				time = r"\d{6}"
@@ -551,7 +547,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				if re.match(r"[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
 					time = re.sub(r"[\.:]", "", time)
 				if not re.match(r"[0-2][0-9][0-5][0-9][0-5][0-9]", time):
-					raise ValueError("Invalid time format.")
+					raise ValueError("Invalid time format. Try **HHMMSS**.")
 				time_str = time
 			pattern = f"{date.strftime('%y%m%d')}_{time}_{session}.json"
 			results = self.get_results(config, pattern)
@@ -604,15 +600,9 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			)
 		except ValueError as e:
 			traceback.print_exc()
-			await ctx.send(
-				content = f"Error: {e}"
-			)
+			raise e
 		except Exception as e:
 			traceback.print_exc()
-			await self.bot.error(
-				e,
-				guild = ctx.guild,
-			)
 			raise e
 
 	@commands.command(
@@ -636,14 +626,15 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				time = time,
 			)
 		except ValueError as e:
-			await ctx.send(
-				content = f"Error: {e}",
+			await self.bot.warn(
+				e,
+				ctx = ctx,
 			)
 		except Exception as e:
 			traceback.print_exc()
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -668,13 +659,14 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				time = time,
 			)
 		except ValueError as e:
-			await ctx.send(
-				content = f"Error: {e}",
+			await self.bot.warn(
+				e,
+				ctx = ctx,
 			)
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 	@commands.command(
@@ -700,13 +692,14 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				time = time,
 			)
 		except ValueError as e:
-			await ctx.send(
-				content = f"Error: {e}"
+			await self.bot.warn(
+				e,
+				ctx = ctx,
 			)
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 

@@ -100,7 +100,7 @@ class Event(commands.Cog, name="Event Management"):
 		except Exception as e:
 			await self.bot.error(
 				e,
-				guild = ctx.guild
+				ctx = ctx,
 			)
 
 	@commands.Cog.listener()

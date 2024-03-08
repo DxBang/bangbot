@@ -145,9 +145,9 @@ class Help(commands.Cog, name="Help Command"):
 				embed = embed
 			)
 		except Exception as e:
-			await self.bot.error(
+			await self.bot.warn(
 				e,
-				guild = ctx.guild,
+				ctx = ctx,
 			)
 
 async def setup(bot:commands.Bot) -> None:
