@@ -179,6 +179,7 @@ class Driver(commands.Cog, name="Driver"):
 		name = "add_driver",
 		description = "Manually add a driver to the list of drivers.",
 		usage = "add_driver [@member] [number] [gamertag]",
+		hidden = True,
 	)
 	@commands.has_permissions(manage_nicknames=True)
 	async def add_driver(self, ctx:commands.Context, member:discord.Member, number:int, gamertag:str) -> None:

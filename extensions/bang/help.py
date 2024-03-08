@@ -24,6 +24,14 @@ class Help(commands.Cog, name="Help Command"):
 	)
 	async def help(self, ctx:commands.Context, help:str = None) -> None:
 		try:
+
+			showHiddenChannels = self.bot.get_config(ctx.guild, "channel", "staff")
+			# format showHiddenChannels = [channel.id, channel.id, channel.id]
+			showHidden = False
+			if showHiddenChannels:
+				# check if current channel is in the list of hidden channels
+				showHidden = ctx.channel.id in showHiddenChannels
+
 			if help is not None:
 				help = help.lower()
 				# get the command
@@ -50,12 +58,35 @@ class Help(commands.Cog, name="Help Command"):
 					return await ctx.send(
 						embed=embed
 					)
-				embed = self.bot.embed(
-					ctx = ctx,
-					title = f"Help: {command.name}",
-					description = command.description,
-					bot = True,
-				)
+				if hasattr(command, 'hidden'):
+					if command.hidden:
+						if showHidden is False:
+							embed = self.bot.embed(
+								ctx = ctx,
+								title = "Help",
+								description = "Command not found",
+								bot = True,
+							)
+							embed.set_footer(
+								text = f"Powered by {self.bot.__POWERED_BY__}",
+							)
+							return await ctx.send(
+								embed=embed
+							)
+				if hasattr(command, 'aliases'):
+					embed = self.bot.embed(
+						ctx = ctx,
+						title = f"Command: {command.name}",
+						description = command.description,
+						bot = True,
+					)
+				else:
+					embed = self.bot.embed(
+						ctx = ctx,
+						title = f"Slash Command: {command.name}",
+						description = command.description,
+						bot = True,
+					)
 				if hasattr(command, 'aliases') and command.aliases:
 					embed.add_field(
 						name = "Aliases",
@@ -83,6 +114,13 @@ class Help(commands.Cog, name="Help Command"):
 							value = "Yes",
 							inline = False,
 						)
+				if hasattr(command, 'nsfw'):
+					if command.nsfw:
+						embed.add_field(
+							name = "NSFW",
+							value = "Yes",
+							inline = False,
+						)
 			if help is None:
 				embed = self.bot.embed(
 					ctx = ctx,
@@ -92,16 +130,7 @@ class Help(commands.Cog, name="Help Command"):
 				)
 				# list of cogs
 				cogs = self.bot.cogs
-				showHiddenChannels = self.bot.get_config(ctx.guild, "channel", "staff")
-				# format showHiddenChannels = [channel.id, channel.id, channel.id]
-				showHidden = False
-				if showHiddenChannels:
-					# check if current channel is in the list of hidden channels
-					showHidden = ctx.channel.id in showHiddenChannels
-				print(f"showHidden: {showHidden}")
-				print(f"cogs: {cogs}")
 				# list of commands in each cog
-
 				commands = {}
 				for cog in cogs:
 					print(f"cog: {cog}")
@@ -111,7 +140,7 @@ class Help(commands.Cog, name="Help Command"):
 					_commands = cogs[cog].get_app_commands()
 					print(f"app_commands: {_commands}")
 					if len(_commands) > 0:
-						commands[cog].extend([f"{command.name} - {command.description}" for command in _commands])
+						commands[cog].extend([f"/{command.name} - {command.description}" for command in _commands])
 
 					_commands = cogs[cog].get_commands()
 					if len(_commands) > 0:
