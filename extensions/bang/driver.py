@@ -159,9 +159,10 @@ class Driver(commands.Cog, name="Driver"):
 
 	@app_commands.command(
 		name = "driver",
-		description = "Driver Information",
+		description = "Set the driver number and gamertag and rename the user nickname to #number gamertag.",
 	)
 	async def driver(self, interaction:discord.Interaction) -> None:
+		"""Set the driver number and gamertag and rename the user nickname to #number gamertag."""
 		try:
 			print(interaction)
 			await interaction.response.send_modal(
@@ -176,10 +177,19 @@ class Driver(commands.Cog, name="Driver"):
 
 	@commands.command(
 		name = "add_driver",
-		description = "Add Driver Information",
+		description = "Manually add a driver to the list of drivers.",
+		usage = "add_driver [@member] [number] [gamertag]",
 	)
 	@commands.has_permissions(manage_nicknames=True)
 	async def add_driver(self, ctx:commands.Context, member:discord.Member, number:int, gamertag:str) -> None:
+		"""
+		Parameters:
+		@member: The member to add the driver number and gamertag to.
+		number: The driver number.
+		gamertag: The driver gamertag.
+		e.g.
+		{ctx.prefix}add_driver @DxBang 21 DxBang
+		"""
 		try:
 			jsonFile = f"{sys.path[0]}/guild/{ctx.guild.id}.drivers.json"
 			# open the driver json file from the guild folder guild_id.drivers.json, create it if it doesn't exist

@@ -16,6 +16,7 @@
 		"bang.event",
 		"bang.systems",
 		"bang.driver",
+		"bang.help",
 		"!bang.gaming",
 		"!bang.test",
 		"!bang.welcome"

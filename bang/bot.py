@@ -9,6 +9,7 @@ from discord.ext import commands
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
 from typing import Coroutine, NamedTuple
+import platform
 
 def cprint(message:str, fg:str="white", bg:str="black", end:str="\n") -> None:
 	fg:int = {
@@ -75,7 +76,7 @@ class Bang(commands.Bot):
 			with open('.version', 'r') as f:
 				self.__version__ = f.read().strip()
 			# print in white
-			cprint(f"BangBot v{self.__version__} (discord.py v{discord.__version__}) (Python v{sys.version.split(' ')[0]})", "blue")
+			cprint(f"BangBot v{self.__version__} (discord.py v{discord.__version__}) (Python v{platform.python_version()})", "blue")
 			print("Loading config.json")
 			self.__POWERED_BY__ = "Bang Systems"
 			with open(sys.path[0] + "/config.json", encoding="utf-8") as f:
