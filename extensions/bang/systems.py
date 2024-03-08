@@ -153,7 +153,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 				bot=True,
 			)
 			"""
-			embed.add_field(name="BangBot", value=f"{self.bot.__version__}")
+			embed.add_field(name=f"{self.bot.__name__}", value=f"{self.bot.__version__}")
 			embed.add_field(name="Discord.py", value=f"{discord.__version__}")
 			embed.add_field(name="Python", value=f"{platform.python_version()}")
 			#embed.add_field(name="\u200b", value="\u200b", inline=True)
@@ -263,7 +263,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Custom", value=text)
+			embed.add_field(
+				name="Custom",
+				value=text
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -295,7 +298,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Game", value=text)
+			embed.add_field(
+				name="Game",
+				value=text
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -326,7 +332,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Compete", value=text)
+			embed.add_field(
+				name="Compete",
+				value=text
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -358,7 +367,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Watch", value=text)
+			embed.add_field(
+				name="Watch",
+				value=text
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -390,7 +402,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Listen", value=text)
+			embed.add_field(
+				name="Listen",
+				value=text
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -422,7 +437,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Stream", value=text)
+			embed.add_field(
+				name="Stream",
+				value=text
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -455,7 +473,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Presence", value="invisible")
+			embed.add_field(
+				name="Presence",
+				value="invisible"
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -484,7 +505,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Presence", value="idle")
+			embed.add_field(
+				name="Presence",
+				value="idle"
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -513,7 +537,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Presence", value="online")
+			embed.add_field(
+				name="Presence",
+				value="online"
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -542,7 +569,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Presence", value="offline")
+			embed.add_field(
+				name="Presence",
+				value="offline"
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -571,7 +601,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Presence", value="dnd")
+			embed.add_field(
+				name="Presence",
+				value="dnd"
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,
@@ -600,7 +633,10 @@ class Systems(commands.Cog, name="Bang Systems"):
 				ctx = ctx,
 				bot = True,
 			)
-			embed.add_field(name="Presence", value="afk")
+			embed.add_field(
+				name="Presence",
+				value="afk"
+			)
 			await ctx.send(
 				embed = embed,
 				reference = ctx.message,

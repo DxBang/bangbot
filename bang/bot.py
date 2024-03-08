@@ -64,8 +64,9 @@ class Bang(commands.Bot):
 		"data",
 		"sql",
 		"console",
-		"__POWERED_BY__",
+		"__name__",
 		"__version__",
+		"__POWERED_BY__",
 	)
 
 	def __init__(self, token:str = None) -> None:
@@ -73,12 +74,13 @@ class Bang(commands.Bot):
 			if token is None:
 				raise ValueError("Token is not provided.")
 			self.token = token
+			self.__name__ = "BangBot"
 			with open('.version', 'r') as f:
 				self.__version__ = f.read().strip()
-			# print in white
-			cprint(f"BangBot v{self.__version__} (discord.py v{discord.__version__}) (Python v{platform.python_version()})", "blue")
-			print("Loading config.json")
 			self.__POWERED_BY__ = "Bang Systems"
+			# print in white
+			cprint(f"{self.__name__} v{self.__version__} (discord.py v{discord.__version__}) (Python v{platform.python_version()})", "blue")
+			print("Loading config.json")
 			with open(sys.path[0] + "/config.json", encoding="utf-8") as f:
 				self.config = json.load(f)
 			self.config.update(
