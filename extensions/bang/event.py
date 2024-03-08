@@ -90,7 +90,7 @@ class Event(commands.Cog, name="Event Management"):
 					)
 			await ctx.message.delete()
 			message = await ctx.send(
-				content = mention,
+				content = f"📅 {mention}",
 				embed = embed,
 				files = files,
 			)

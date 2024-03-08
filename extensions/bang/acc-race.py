@@ -279,6 +279,11 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						"team": position["car"]["teamName"],
 						"laps": 0,
 						"time": 0,
+						"best": {
+							"lap": position["timing"]["lapCount"],
+							"time": position["timing"]["bestLap"],
+							"splits": position["timing"]["bestSplits"],
+						},
 						"drivers": {},
 					}
 					if len(position["car"]["drivers"]) > 0:
@@ -337,7 +342,11 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 							driver = car["drivers"][driverIdx]
 							#driver["laps"] += 1
 							driver["laps"].append(l["laptime"])
-							if l["isValidForBest"]:
+							if l["isValidForBest"] and\
+								(
+									driver["best"]["time"] == 0 or
+									l["laptime"] < driver["best"]["time"]
+								):
 								driver["best"]["lap"] = carLaps[carId]
 								driver["best"]["time"] = l["laptime"]
 								if fastest["time"] == l["laptime"]:
@@ -474,30 +483,34 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				for position in data["positions"]:
 					car = data["cars"][position["carId"]]
 					drivers = []
-					time = 0
-					time_str = "N/A"
+					best_time = 0
+					best_time_str = "N/A"
 					for driver in car["drivers"].values():
+						#print(f"driver: {driver['best']['time']}")
 						# find the driver with the fastest best lap
-						if time == 0:
-							time = driver["best"]["time"]
-						if driver["best"]["time"] < time:
-							time = driver["best"]["time"]
+						if best_time == 0:
+							best_time = driver["best"]["time"]
+							best_lap = driver["best"]["lap"]
+						if driver["best"]["time"] < best_time:
+							best_time = driver["best"]["time"]
+							best_lap = driver["best"]["lap"]
 							fastestDriver = driver
 						drivers.append(
 							self.driverName(driver)
 						)
 					drivers = ", ".join(drivers)
 					if car["laps"] == 0:
-						time_str = "N/A"
+						best_time_str = "N/A"
 					else:
-						time_str = self.convert_time(time)
+						best_time_str = self.convert_time(best_time)
 					embed.add_field(
 						name = f"{self.place(place)} #{car['number']} {self.car(car['car'])[0]} {car['team']}",
-						value = f"{drivers} · {time_str} · {position['laps']} lap{position['laps'] > 1 and 's' or ''}",
+						value = f"{drivers} · {best_time_str} on lap {best_lap} · ({position['laps']} lap{position['laps'] > 1 and 's' or ''})",
 						inline = False,
 					)
 					place += 1
 			fastestDriver = self.driverName(data['cars'][data['fastest']['car']]['drivers'][data['fastest']['driver']])
+
 			embed.add_field(
 				name = "Fastest Lap",
 				value = f"**🛞 #{data['cars'][data['fastest']['car']]['number']}** {fastestDriver}"\
@@ -508,7 +521,8 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				text = f"Powered by {self.bot.__POWERED_BY__}",
 			)
 			return await ctx.send(
-				embed = embed
+				content = f"🏎️",
+				embed = embed,
 			)
 		except Exception as e:
 			raise e
