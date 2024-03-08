@@ -14,12 +14,23 @@ class Event(commands.Cog, name="Event Management"):
 	# @commands.hybrid_command()
 	@commands.command(
 		description = "Create an event for people to sign up for with reactions for going, maybe, and not going.",
-		hidden = False,
+		hidden = True,
+		usage = "event <title>\n<description>",
 	)
 	@commands.guild_only()
 	@commands.has_permissions(moderate_members=True)
 	async def event(self, ctx:commands.Context) -> None:
-		"""Create an event for people to sign up for with reactions for going, maybe, and not going."""
+		"""
+		Use the following format to create an event:
+		```
+		{ctx.prefix}event The next race at Silverstone
+
+		We will be racing at Silverstone next week. Please react to the message to let us know if you are going, maybe, or not going.
+		So sign up @drivers and let us know if you are going to be there.
+		```
+		Depending on the configuration, you can mention roles to lock the reactions to that role or have it completely locked to specific role(s).
+		A single image can be attached to the event message, and it can be set to be a thumbnail or the main image in the configuration.
+		"""
 		try:
 			title = ctx.message.content.split("\n", 1)[0].split(" ", 1)[1].strip()
 			description = ctx.message.content.split("\n", 1)[1].strip()
@@ -36,6 +47,11 @@ class Event(commands.Cog, name="Event Management"):
 				name = ctx.guild.name,
 				icon_url = ctx.guild.icon,
 			)
+			mention = None
+			mentions = []
+			roles = self.bot.get_config(ctx.guild, "event", "roles")
+			if isinstance(roles, list) and len(roles) > 0:
+				mentions.extend([role.mention for role in ctx.guild.roles if role.id in roles])
 			label = self.bot.get_config(ctx.guild, "label", "event")
 			config = self.bot.get_config(ctx.guild, "event")
 			embed.add_field(
@@ -53,9 +69,9 @@ class Event(commands.Cog, name="Event Management"):
 				value = "\n",
 				inline = True,
 			)
-			mention = None
 			if len(ctx.message.role_mentions) > 0:
-				mention = " ".join([role.mention for role in ctx.message.role_mentions])
+				mentions.extend([role.mention for role in ctx.message.role_mentions])
+			mention = " ".join(mentions)
 			files = None
 			if len(ctx.message.attachments) > 0:
 				if config["attachment"]["thumbnail"]:

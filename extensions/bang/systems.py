@@ -20,7 +20,6 @@ class Systems(commands.Cog, name="Bang Systems"):
 	def __init__(self, bot:commands.Bot) -> None:
 		try:
 			self.bot = bot
-			self.bot.remove_command("help")
 		except Exception as e:
 			raise e
 
@@ -154,8 +153,9 @@ class Systems(commands.Cog, name="Bang Systems"):
 				bot=True,
 			)
 			"""
-			embed.add_field(name="Bangbot", value=f"{self.bot.__version__}")
+			embed.add_field(name="BangBot", value=f"{self.bot.__version__}")
 			embed.add_field(name="Discord.py", value=f"{discord.__version__}")
+			embed.add_field(name="Python", value=f"{platform.python_version()}")
 			#embed.add_field(name="\u200b", value="\u200b", inline=True)
 			#embed.add_field(name="\u200b", value="\u200b", inline=True)
 			#embed.add_field(name=f"Bot PID", value=f"{pid}", inline=True)
@@ -194,78 +194,8 @@ class Systems(commands.Cog, name="Bang Systems"):
 				guild = ctx.guild,
 			)
 
-
-
-
-	@commands.hybrid_command(
-		description = "Show this help...",
-		usage = "help [command/cog/extension]",
-		aliases = [
-			"h",
-		],
-	)
-	async def help(self, ctx:commands.Context, command:str = None) -> None:
-		try:
-			showHidden = False
-			if ctx.channel.id in self.bot.get_config(ctx.guild, "channel", "staff"):
-				showHidden = True
-			md = "```md\n"
-			if command is None:
-				for cog in [c for c in self.bot.cogs.keys()]:
-					cogs = self.bot.get_cog(cog).get_commands()
-					if cogs is None:
-						continue
-					cog_md = f"# {cog}\n"
-					for cmd in cogs:
-						if (showHidden or (showHidden is False and cmd.hidden is False))\
-						and cmd.enabled is True:
-							if cog_md is not None:
-								md += cog_md
-								cog_md = None
-							md += f"  {ctx.prefix}{cmd.name}"
-							for param in cmd.clean_params:
-								md += f" <{param}>"
-							md += "\n"
-							if not cmd.usage and cmd.brief:
-								md += f" {cmd.brief}\n"
-			else:
-				cmd = self.bot.get_command(command)
-				if cmd is None:
-					md += f"Cannot find command: {command}"
-				elif (showHidden or (showHidden is False and cmd.hidden is False))\
-				and cmd.enabled is True:
-					md += f"# {cmd.cog_name}/{cmd.qualified_name}\n"
-					md += f"  {ctx.prefix}"
-					if cmd.aliases:
-						aliases = "|".join(cmd.aliases)
-						md += f"[{cmd.name}|{aliases}]"
-					else:
-						md += f"{cmd.name}"
-					for param in cmd.clean_params:
-						md += f" <{param}>"
-					md += "\n"
-					if cmd.usage:
-						md += f"usage: {cmd.usage}\n"
-					if not cmd.usage and cmd.brief:
-						md += f"brief: {cmd.brief}\n"
-					if cmd.description:
-						md += f"description:\n{cmd.description}\n"
-					if cmd.help:
-						md += f"help:\n{cmd.help}\n"
-			md += "```"
-			await ctx.send(
-				content = md,
-				reference = ctx.message,
-				#delete_after = 120,
-			)
-		except Exception as e:
-			await self.bot.error(
-				e,
-				guild = ctx.guild,
-			)
-
 	@commands.command(
-		description = "load extension",
+		description = "Load an extension",
 		hidden = True,
 	)
 	@commands.is_owner()
@@ -283,7 +213,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 
 	@commands.command(
-		description = "reload extension",
+		description = "Reload an extension",
 		hidden = True,
 	)
 	@commands.is_owner()
@@ -301,7 +231,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 
 	@commands.command(
-		description = "unload extension",
+		description = "Unload an extension",
 		hidden = True,
 	)
 	@commands.is_owner()
@@ -320,7 +250,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 
 	@commands.command(
 		aliases = ["activity"],
-		description = "change the custom status of the bot",
+		description = "Change the custom status of the bot",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -352,7 +282,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 
 	@commands.command(
 		aliases = ["playing"],
-		description = "change the game status of the bot",
+		description = "Change the game status of the bot",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -383,7 +313,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 
 	@commands.command(
 		aliases = ["competing"],
-		description = "change the watch status of the bot",
+		description = "Change the watch status of the bot",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -415,7 +345,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 
 	@commands.command(
 		aliases = ["watching"],
-		description = "change the watch status of the bot",
+		description = "Change the watch status of the bot",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -447,7 +377,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 
 	@commands.command(
 		aliases = ["listening"],
-		description = "change the watch status of the bot",
+		description = "Change the watch status of the bot",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -479,7 +409,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 
 	@commands.command(
 		aliases = ["streaming"],
-		description = "change the watch status of the bot",
+		description = "Change the watch status of the bot",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -512,7 +442,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 
 	@commands.command(
 		aliases = ["hide"],
-		description = "set bot to invisible",
+		description = "Set bot to invisible",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -541,7 +471,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 
 	@commands.command(
-		description = "set bot to idle",
+		description = "Set bot to idle",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -570,7 +500,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 
 	@commands.command(
-		description = "set bot to online",
+		description = "Set bot to online",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -599,7 +529,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 
 	@commands.command(
-		description = "set bot to offline",
+		description = "Set bot to offline",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -628,7 +558,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 
 	@commands.command(
-		description = "set bot to dnd",
+		description = "Set bot to dnd",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -657,7 +587,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 
 	@commands.command(
-		description = "set bot to afk",
+		description = "Set bot to afk",
 		hidden = True,
 	)
 	@commands.guild_only()
@@ -687,7 +617,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 			)
 
 	@commands.command(
-		description = "chat in a channel",
+		description = "Chat in a channel as the bot",
 		hidden = True,
 	)
 	@commands.guild_only()

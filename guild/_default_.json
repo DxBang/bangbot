@@ -29,21 +29,90 @@
 			"sans": ["LSANS.TTF", 24]
 		}
 	},
-	"event": {
-		"label": {
+	"label": {
+		"form": {
+			"submit": {
+				"name": "Submit",
+				"emoji": "✅",
+				"description": "Submit the form."
+			},
+			"cancel": {
+				"name": "Cancel",
+				"emoji": "❌",
+				"description": "Cancel the form."
+			},
+			"reset": {
+				"name": "Reset",
+				"emoji": "🔄",
+				"description": "Reset the form."
+			}
+		},
+		"gaming": {
+			"platform": {
+				"name": "Platform",
+				"emoji": "🤖",
+				"description": "The platform you play on."
+			},
+			"xbox": {
+				"name": "Xbox",
+				"emoji": "🎮",
+				"description": "Xbox One, Xbox 360, Xbox Series X"
+			},
+			"playstation": {
+				"name": "PlayStation",
+				"emoji": "🎮",
+				"description": "PlayStation 4, PlayStation 5"
+			},
+			"pc": {
+				"name": "PC",
+				"emoji": "💻",
+				"description": "Windows, Mac, Linux"
+			}
+		},
+		"driver": {
+			"number": {
+				"name": "Number",
+				"emoji": "🔢",
+				"description": "The number of the car."
+			},
+			"gamertag": {
+				"name": "Gamertag",
+				"emoji": "🎮",
+				"description": "Your gamertag or username."
+			},
+			"team": {
+				"name": "Team",
+				"emoji": "🏁",
+				"description": "The team you are racing for."
+			},
+			"car": {
+				"name": "Car",
+				"emoji": "🏎️",
+				"description": "The car you are racing."
+			}
+		},
+		"event": {
 			"accept": {
 				"name": "Going",
-				"emoji": "✅"
+				"emoji": "✅",
+				"description": "I'm going to the event."
 			},
 			"maybe": {
 				"name": "Maybe",
-				"emoji": "❔"
+				"emoji": "❔",
+				"description": "I might go to the event."
 			},
 			"decline": {
 				"name": "Not Going",
-				"emoji": "❌"
+				"emoji": "❌",
+				"description": "I'm not going to the event."
 			}
-		},
+		}
+	},
+	"event": {
+		"roles": [
+
+		],
 		"attachment": {
 			"download": false,
 			"image": true,
@@ -55,5 +124,58 @@
 		"general": [],
 		"staff": [],
 		"log": 1212447504784822354
+	},
+	"response": {
+		"driver_successful_personal": [
+			"I have added you to the list.",
+			"Thanks.",
+			"Aaaaand done."
+		],
+		"driver_assigned_number": [
+			"Driver {gamertag} has been assigned number {number}.",
+			"#{number} has been assigned to {gamertag}.",
+			"Galileo Figaro, magnifico!! {gamertag} is #{number}."
+		],
+		"error_command_not_found": [
+			"Sorry {author}, I don't know how to do that.",
+			"Uhm, {author}, I don't know what you're asking me to do.",
+			"Sorry, {author}, I don't know how to do that."
+		],
+		"error_command_cooldown": [
+			"Slow down, {author}. This command is on a cooldown for t-minus {cooldown}.",
+			"Please wait {cooldown} before running that command again.",
+			"Cooldown for t-minus {cooldown}.",
+			"Bitch, please!"
+		],
+		"error_command_disabled": [
+			"I'm sorry {author}, but {command} has been disabled.",
+			"No can do, the {command} command has been disabled.",
+			"Cannot comply with {command}."
+		],
+		"error_command_missing_argument": [
+			"I'm sorry {author}, but I need more details. such as {param}",
+			"Missing: {param}"
+		],
+		"error_command_not_in_private": [
+			"{command} can not be used in Private Messages."
+		],
+		"error_command_bad_argument_tag": [
+			"I'm sorry, who?",
+			"I am not sure if {argument} is correct..."
+		],
+		"error_command_bad_argument": [
+			"{author}, you raise a really bad argument...",
+			"Uhm {author}, this {argument} made no sense..."
+		],
+		"error_command_not_owner": [
+			"{author} You're not the boss of me now!",
+			"Nope, I am not going to do that for you {author}.",
+			"And I should do that for you because, why?"
+		],
+		"error_command_missing_permissions": [
+			"Access Denied!",
+			"Honestly {author}, you don't have permission to do that.",
+			"I cannot grant you that."
+		]
 	}
 }
