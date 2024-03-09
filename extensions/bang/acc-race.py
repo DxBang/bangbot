@@ -440,7 +440,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			embed = self.bot.embed(
 				ctx = ctx,
 				title = f"{data['server']} - {date.strftime('%d %B %Y')}   ***` {data['typeName']} `***",
-				description = f"**{track}** - **{data['laps']} laps** in **{self.convert_time(data['time'])}**",
+				description = f"**{track}** - **{data['laps']} laps** in **{self.convert_time(data['time'])}** {'🌧️' if data['wet'] == 1 else ''}",
 				bot = True,
 			)
 			place = 1
