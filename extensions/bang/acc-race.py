@@ -444,6 +444,8 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				bot = True,
 			)
 			place = 1
+			driver_penalties = []
+			# race
 			if data["type"] == "R":
 				for position in data["positions"]:
 					car = data["cars"][position["carId"]]
@@ -452,6 +454,24 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						drivers.append(
 							self.driverName(driver)
 						)
+						if len(driver["penalties"]):
+							driver_penalties.append(
+								{
+									"car": {
+										"number": car["number"],
+										"car": car["car"],
+										"group": car["group"],
+										"team": car["team"],
+									},
+									"driver": {
+										"playerId": driver["playerId"],
+										"firstName": driver["firstName"],
+										"lastName": driver["lastName"],
+										"shortName": driver["shortName"],
+									},
+									"penalties": driver["penalties"],
+								}
+							)
 					drivers = ", ".join(drivers)
 					inline = (place > 3)
 					if place == 1:
@@ -478,6 +498,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 								inline = inline,
 							)
 					place += 1
+			# free practice or qualifying
 			if data["type"] in ["FP", "Q"]:
 				# show fastest lap and most laps
 				for position in data["positions"]:
@@ -509,14 +530,23 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						inline = False,
 					)
 					place += 1
+			# show fastest lap
 			fastestDriver = self.driverName(data['cars'][data['fastest']['car']]['drivers'][data['fastest']['driver']])
-
 			embed.add_field(
 				name = "Fastest Lap",
 				value = f"**🛞 #{data['cars'][data['fastest']['car']]['number']}** {fastestDriver}"\
 						f" · {self.convert_time(data['fastest']['time'])} on lap {data['fastest']['lap']}",
 				inline = False,
 			)
+			# show penalties
+			if len(driver_penalties):
+				for pen in driver_penalties:
+					for penalty in pen["penalties"]:
+						embed.add_field(
+							name = f"⚠️ #{pen['car']['number']} {self.car(pen['car']['car'])[0]} · {self.driverName(pen['driver'])}",
+							value = f"{penalty['reason']} · {penalty['penalty']}",
+							inline = False,
+						)
 			embed.set_footer(
 				text = f"Powered by {self.bot.__POWERED_BY__}",
 			)
