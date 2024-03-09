@@ -373,7 +373,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 								"reason": p["reason"],
 								"penalty": p["penalty"],
 								"value": p["penaltyValue"],
-								"violation": p["violationInLap"],
+								"violated": p["violationInLap"],
 								"cleared": p["clearedInLap"],
 							})
 			if len(data["post_race_penalties"]):
@@ -388,7 +388,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 								"reason": p["reason"],
 								"penalty": p["penalty"],
 								"value": p["penaltyValue"],
-								"violation": p["violationInLap"],
+								"violated": p["violationInLap"],
 								"cleared": p["clearedInLap"],
 							})
 			return {
@@ -542,9 +542,10 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			if len(driver_penalties):
 				for pen in driver_penalties:
 					for penalty in pen["penalties"]:
+						cleared = f"Cleared on lap {penalty['cleared']}" if penalty["cleared"] >= penalty["violated"] else "**Not Cleared**"
 						embed.add_field(
 							name = f"⚠️ #{pen['car']['number']} {self.car(pen['car']['car'])[0]} · {self.driverName(pen['driver'])}",
-							value = f"{penalty['reason']} · {penalty['penalty']}",
+							value = f"Lap {penalty['violated']} · {penalty['reason']} · {penalty['penalty']} · {cleared}",
 							inline = False,
 						)
 			embed.set_footer(
