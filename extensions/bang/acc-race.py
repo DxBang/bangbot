@@ -542,6 +542,10 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			if len(driver_penalties):
 				for pen in driver_penalties:
 					for penalty in pen["penalties"]:
+						if penalty["penalty"] == "None":
+							continue
+						if penalty["violated"] == 0:
+							continue
 						cleared = f"Cleared on lap {penalty['cleared']}" if penalty["cleared"] >= penalty["violated"] else "**Not Cleared**"
 						embed.add_field(
 							name = f"⚠️ #{pen['car']['number']} {self.car(pen['car']['car'])[0]} · {self.driverName(pen['driver'])}",
