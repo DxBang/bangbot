@@ -540,6 +540,11 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			)
 			# show penalties
 			if len(driver_penalties):
+				embed.add_field(
+					name = "\u200b",
+					value = "**Penalties**",
+					inline = False,
+				)
 				for pen in driver_penalties:
 					for penalty in pen["penalties"]:
 						if penalty["penalty"] == "None":
