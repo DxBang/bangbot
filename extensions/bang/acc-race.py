@@ -214,7 +214,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 		else:
 			return f"**{driver['shortName']}**"
 
-	def get_results(self, config, pattern:str) -> list | None:
+	def get_results(self, config, pattern:str, latest:bool = False) -> list | None:
 		try:
 			print(f"get_results: {pattern}")
 			if (('host' not in config or config['host'] is None) or
@@ -238,6 +238,8 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			for filename in filenames:
 				if not re.match(pattern, filename):
 					continue
+				if latest and len(result) > 0:
+					break
 				local_filename = os.path.join(storage, filename)
 				result.append(local_filename)
 				if not os.path.exists(local_filename):
@@ -427,8 +429,8 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			if data["laps"] == 0:
 				embed = self.bot.embed(
 					ctx = ctx,
-					title = f"{data['server']} - {date.strftime('%d %B %Y')} ***` {data['typeName']} `***",
-					description = f"**{track}** - **No laps**",
+					title = f"{data['server']} · {date.strftime('%d %B %Y')} ***` {data['typeName']} `***",
+					description = f"**{track}** · **No laps**",
 					bot = True,
 				)
 				embed.set_footer(
@@ -439,8 +441,8 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				)
 			embed = self.bot.embed(
 				ctx = ctx,
-				title = f"{data['server']} - {date.strftime('%d %B %Y')}   ***` {data['typeName']} `***",
-				description = f"**{track}** - **{data['laps']} laps** in **{self.convert_time(data['time'])}** {'🌧️' if data['wet'] == 1 else ''}",
+				title = f"{data['server']} · {date.strftime('%d %B %Y')}   ***` {data['typeName']} `***",
+				description = f"**{track}** · **{data['laps']} laps** in **{self.convert_time(data['time'])}** {'🌧️' if data['wet'] == 1 else ''}",
 				bot = True,
 			)
 			place = 1
@@ -571,40 +573,56 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 		try:
 			print(f"handle_request: {session} {date} {time}")
 			config = self.bot.get_config(ctx.guild, "connect", "acc")
+			latest = False
 			if config is None:
 				raise ValueError("ACC Dedicated Server configuration not found.")
 			if session not in ["FP", "Q", "R"]:
 				raise ValueError("Session must be one of **FP**, **Q**, **R**.")
-			if date is None:
-				date = datetime.now(timezone.utc)
-			elif date.lower() == "today":
-				date = datetime.now(timezone.utc)
-			elif date.lower() == "yesterday":
-				date = datetime.now() - timedelta(days=1)
-			elif re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-				date = datetime.strptime(date, "%y%m%d")
-			elif re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-				date = datetime.strptime(date, "%Y%m%d")
-			elif re.match(r"^[0-9]{4}-[0-1]?[0-9]-[0-3]?[0-9]$", date):
-				date = datetime.strptime(date, "%Y-%m-%d")
-			elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{2}$", date):
-				date = datetime.strptime(date, "%d/%m/%y")
-			elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
-				date = datetime.strptime(date, "%d/%m/%Y")
+			if date is None or date == "" or date.lower() == "latest":
+				print("latest")
+				date = "\d{6}"
+				date_str = "latest"
+				time = "\d{6}"
+				time_str = "latest"
+				latest = True
 			else:
-				raise ValueError("Invalid date format. Try **YYMMDD**, **YYYYMMDD**, **YYYY-MM-DD**, or **DD/MM/YY**.")
-			date_str = date.strftime("%d %B %Y")
-			if time is None:
-				time = r"\d{6}"
-				time_str = "any time"
+				print("not latest")
+				if date.lower() == "today":
+					date = datetime.now(timezone.utc)
+				elif date.lower() == "yesterday":
+					date = datetime.now(timezone.utc) - timedelta(days=1)
+				elif re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
+					date = datetime.strptime(date, "%y%m%d")
+				elif re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
+					date = datetime.strptime(date, "%Y%m%d")
+				elif re.match(r"^[0-9]{4}-[0-1]?[0-9]-[0-3]?[0-9]$", date):
+					date = datetime.strptime(date, "%Y-%m-%d")
+				elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{2}$", date):
+					date = datetime.strptime(date, "%d/%m/%y")
+				elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
+					date = datetime.strptime(date, "%d/%m/%Y")
+				else:
+					raise ValueError("Invalid date format. Try **YYMMDD**, **YYYYMMDD**, **YYYY-MM-DD**, or **DD/MM/YY**.")
+				date_str = date.strftime("%d %B %Y")
+				if time is None:
+					time = r"\d{6}"
+					time_str = "any time"
+				else:
+					if time == "latest":
+						time = r"\d{6}"
+						time_str = "latest"
+						latest = True
+					else:
+						if re.match(r"[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
+							time = re.sub(r"[\.:]", "", time)
+						if not re.match(r"[0-2][0-9][0-5][0-9][0-5][0-9]", time):
+							raise ValueError("Invalid time format. Try **HHMMSS**.")
+						time_str = time
+			if date_str == "latest":
+				pattern = f"{date}_{time}_{session}.json"
 			else:
-				if re.match(r"[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
-					time = re.sub(r"[\.:]", "", time)
-				if not re.match(r"[0-2][0-9][0-5][0-9][0-5][0-9]", time):
-					raise ValueError("Invalid time format. Try **HHMMSS**.")
-				time_str = time
-			pattern = f"{date.strftime('%y%m%d')}_{time}_{session}.json"
-			results = self.get_results(config, pattern)
+				pattern = f"{date.strftime('%y%m%d')}_{time}_{session}.json"
+			results = self.get_results(config, pattern, latest)
 			if results is None:
 				embed = self.bot.embed(
 					ctx = ctx,
@@ -647,6 +665,10 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				return await ctx.send(
 					embed = embed
 				)
+			# extract date & time from filename and convert to datetime yymmdd_hhmmss
+			date, time, _ = os.path.basename(results[0]).split("_")
+			date = datetime.strptime(f"{date}{time}", "%y%m%d%H%M%S")
+			#print(f"date: {date}")
 			return await self.handle_result(
 				ctx = ctx,
 				file = results[0],
@@ -671,6 +693,14 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	)
 	@commands.guild_only()
 	async def race(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
+		"""
+		Get the race results of the date
+		```
+		{ctx.prefix}race 241231 235959
+		{ctx.prefix}race latest
+		{ctx.prefix}race yesterday latest
+		```
+		"""
 		try:
 			print(f"race")
 			await self.handle_request(
@@ -693,6 +723,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 
 	@commands.command(
 		description = "Get the results of the date",
+		usage = "qualify [date] [time]",
 		hidden = False,
 		aliases = [
 			"q",
@@ -700,10 +731,18 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			"quali",
 			"qualifying",
 			"qualifying_results",
-		]
+		],
 	)
 	@commands.guild_only()
 	async def qualify(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
+		"""
+		Get the qualifying results of the date
+		```
+		{ctx.prefix}qualify 241231 235959
+		{ctx.prefix}qualify latest
+		{ctx.prefix}qualify yesterday latest
+		```
+		"""
 		try:
 			print(f"qualify")
 			await self.handle_request(
@@ -733,10 +772,18 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			"free",
 			"free_practice",
 			"practice_results",
-		]
+		],
 	)
 	@commands.guild_only()
 	async def practice(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
+		"""
+		Get the practice results of the date
+		```
+		{ctx.prefix}practice 241231 235959
+		{ctx.prefix}practice latest
+		{ctx.prefix}practice yesterday latest
+		```
+		"""
 		try:
 			print(f"practice")
 			await self.handle_request(

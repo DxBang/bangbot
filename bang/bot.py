@@ -483,7 +483,7 @@ class Bang(commands.Bot):
 		) -> None:
 		frame = sys._getframe(1)
 		section = f"{frame.f_locals['self'].__class__.__name__}/{frame.f_code.co_name}"
-		cprint(message=f"ERROR: {section}: {error}", fg="bright_red", bg="gray")
+		cprint(message=f"ERROR: {section}: {error}", fg="red", bg="black")
 		trace = traceback.format_exc()
 		await ctx.send(
 			content = f"**Error:** {error}",
@@ -503,7 +503,7 @@ class Bang(commands.Bot):
 		) -> None:
 		frame = sys._getframe(1)
 		section = f"{frame.f_locals['self'].__class__.__name__}/{frame.f_code.co_name}"
-		cprint(message=f"WARNING: {section}: {warn}", fg="orange", bg="gray")
+		cprint(message=f"WARNING: {section}: {warn}", fg="yellow", bg="black")
 		await ctx.send(
 			content = f"**Warning:** {warn}",
 			reference = ctx.message,
@@ -515,7 +515,7 @@ class Bang(commands.Bot):
 			ctx:commands.Context,
 		) -> None:
 		try:
-			cprint(f"LOG: {ctx.guild}: {log}", fg="cyan")
+			cprint(f"LOG: {ctx.guild}: {log}", fg="cyan", bg="black")
 			message = ctx.message
 			log_channel = self.get_config(ctx.guild, "channel", "log")
 			if log_channel is None:
