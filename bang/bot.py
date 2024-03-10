@@ -337,16 +337,24 @@ class Bang(commands.Bot):
 		except Exception as e:
 			self.debug(e)
 
-	def get_temp(self) -> str:
+	def get_temp(self, subfolder:str = None) -> str:
 		try:
 			use_system_temp = self.config["bot"]["use_system_temp"]
 			if use_system_temp is not None and use_system_temp is True:
-				return tempfile.gettempdir()
-			return os.path.join(
-				sys.path[0],
-				"tmp"
-			)
-			#return tempfile.gettempdir()
+				temp = tempfile.gettempdir()
+			else:
+				temp = os.path.join(
+					sys.path[0],
+					"tmp"
+				)
+			if subfolder is not None:
+				temp = os.path.join(
+					temp,
+					subfolder
+				)
+			if not os.path.exists(temp):
+				os.makedirs(temp)
+			return temp
 		except Exception as e:
 			self.debug(e)
 
@@ -437,14 +445,7 @@ class Bang(commands.Bot):
 
 	async def download_attachment(self, attachment:discord.Attachment, subfolder:str = None) -> discord.File:
 		try:
-			temp = self.get_temp()
-			if subfolder is not None:
-				temp = os.path.join(
-					temp,
-					subfolder
-				)
-				if not os.path.exists(temp):
-					os.makedirs(temp)
+			temp = self.get_temp(subfolder)
 			path = os.path.join(
 				temp,
 				attachment.filename

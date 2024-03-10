@@ -226,10 +226,8 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			self.ftp.connect(config['host'], config['port'])
 			self.ftp.login(config['user'], config['password'])
 			self.ftp.cwd(config['directory'])
-			storage = self.bot.get_temp()
+			storage = self.bot.get_temp("results")
 			# check if storage directory exists and create if not
-			if not os.path.exists(storage):
-				os.makedirs(storage)
 			files = []
 			self.ftp.retrlines("LIST", files.append)
 			filenames = [line.split()[-1] for line in files]
@@ -791,6 +789,81 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				session = "FP",
 				date = date,
 				time = time,
+			)
+		except ValueError as e:
+			await self.bot.warn(
+				e,
+				ctx = ctx,
+			)
+		except Exception as e:
+			await self.bot.error(
+				e,
+				ctx = ctx,
+			)
+
+	@commands.command(
+		description = "Clean up the FTP from empty result files",
+		usage = "clean",
+		hidden = False,
+	)
+	@commands.guild_only()
+	@commands.is_owner()
+	@commands.has_permissions(moderate_members=True)
+	async def cleanupemptyresults(self, ctx:commands.Context) -> None:
+		"""
+		Clean up the FTP from empty result files
+		```
+		{ctx.prefix}clean
+		```
+		"""
+		try:
+			print(f"cleanupemptyresults")
+			config = self.bot.get_config(ctx.guild, "connect", "acc")
+			if config is None:
+				raise ValueError("ACC Dedicated Server configuration not found.")
+			self.ftp.connect(config['host'], config['port'])
+			self.ftp.login(config['user'], config['password'])
+			self.ftp.cwd(config['directory'])
+			storage = self.bot.get_temp("results_backup")
+			files = []
+			self.ftp.retrlines("LIST", files.append)
+			filenames = [line.split()[-1] for line in files]
+			#filenames.reverse()
+			print(f"filenames: {filenames}")
+			delete_files = []
+			for filename in filenames:
+				local_filename = os.path.join(storage, filename)
+				if not os.path.exists(local_filename):
+					with open(local_filename, "wb") as file:
+						self.ftp.retrbinary(f"RETR {filename}",
+							file.write
+						)
+				# open the file as json
+				with open(local_filename, "rb") as f:
+					data = json.load(f)
+				# check if the file is empty
+				if len(data["sessionResult"]["leaderBoardLines"]) == 0:
+
+					r = self.ftp.delete(filename)
+					print(f"delete: {filename} {r}")
+					#exit()
+					# rename local file to .backup.json
+
+					os.rename(local_filename, f"{local_filename}.backup.json")
+					print(f"empty: {filename}")
+					delete_files.append(filename)
+			self.ftp.quit()
+			embed = self.bot.embed(
+				ctx = ctx,
+				title = "Cleanup",
+				description = f"{len(delete_files)} empty results have been removed.",
+				bot = True,
+			)
+			embed.set_footer(
+				text = f"Powered by {self.bot.__POWERED_BY__}",
+			)
+			return await ctx.send(
+				embed = embed
 			)
 		except ValueError as e:
 			await self.bot.warn(
