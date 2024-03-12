@@ -5,12 +5,15 @@ import os
 #import sys
 import json
 import ftplib
+import plotly.express as px
+import pandas as pd
 from datetime import datetime, timedelta, timezone
 import re
-#import discord
+import discord
 #from PIL import Image, ImageDraw, ImageFont
 from discord.ext import commands
 from discord import app_commands
+from bang.dest import Dest
 import traceback
 
 class ACCRace(commands.Cog, name="ACC Dedicated Server"):
@@ -226,7 +229,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			self.ftp.connect(config['host'], config['port'])
 			self.ftp.login(config['user'], config['password'])
 			self.ftp.cwd(config['directory'])
-			storage = self.bot.get_temp("results")
+			temp = self.bot.get_temp("results")
 			# check if storage directory exists and create if not
 			files = []
 			self.ftp.retrlines("LIST", files.append)
@@ -238,9 +241,9 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					continue
 				if latest and len(result) > 0:
 					break
-				local_filename = os.path.join(storage, filename)
+				local_filename = Dest.join(temp, filename)
 				result.append(local_filename)
-				if not os.path.exists(local_filename):
+				if not Dest.exists(local_filename):
 					with open(local_filename, "wb") as file:
 						self.ftp.retrbinary(f"RETR {filename}",
 							file.write
@@ -254,14 +257,13 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	def load_result(self, filename:str) -> dict:
 		try:
 			print(f"load_result: {filename}")
-			with open(filename, "rb") as f:
-				data = json.load(f)
+			data = Dest.json.load(filename)
 			drivers = []
 			cars = {}
 			positions = []
 			fastest = {}
-			laps = 0
-			time = 0
+			session_laps = 0
+			session_time = 0
 			if len(data["sessionResult"]["leaderBoardLines"]) > 0:
 				fastest = {
 					"car": 0,
@@ -280,7 +282,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						"laps": 0,
 						"time": 0,
 						"best": {
-							"lap": position["timing"]["lapCount"],
+							"lap": position["timing"]["lapCount"] - 1, # -1 for formation lap
 							"time": position["timing"]["bestLap"],
 							"splits": position["timing"]["bestSplits"],
 						},
@@ -316,17 +318,17 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					cars[carId] = car
 					positions.append({
 						"carId": carId,
-						"laps": position["timing"]["lapCount"],
+						"laps": position["timing"]["lapCount"] - 1, # -1 for formation lap
 						"time": position["timing"]["totalTime"],
 					})
 					# update car total time
-					if time == 0:
-						time = position["timing"]["totalTime"]
+					if session_time == 0:
+						session_time = position["timing"]["totalTime"]
 					# update car total laps
-					if laps == 0:
-						laps = position["timing"]["lapCount"]
+					if session_laps == 0:
+						session_laps = position["timing"]["lapCount"] - 1 # -1 for formation lap
 			if len(data["laps"]):
-				lap = 1
+				#lap = 0
 				carLaps = {}
 				for l in data["laps"]:
 					carId = l["carId"]
@@ -352,7 +354,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 								if fastest["time"] == l["laptime"]:
 									fastest["car"] = carId
 									fastest["driver"] = driverIdx
-									fastest["lap"] = carLaps[carId]
+									fastest["lap"] = carLaps[carId] - 1
 									driver["best"]["fastest"] = True
 							for i, s in enumerate(l["splits"]):
 								if driver["best"]["splits"][i] == 0:
@@ -360,7 +362,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 								elif s < driver["best"]["splits"][i]:
 									driver["best"]["splits"][i] = s
 							driver["time"] += l["laptime"]
-					lap += 1
+					#lap += 1
 			if len(data["penalties"]):
 				for p in data["penalties"]:
 					carId = p["carId"]
@@ -401,30 +403,36 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					"R": "Race",
 				}.get(data["sessionType"], "Unknown"),
 				"wet": data["sessionResult"]["isWetSession"],
-				"laps": laps,
-				"time": time,
+				"session": {
+					"laps": session_laps,
+					"time": session_time,
+				},
 				"cars": cars,
 				"drivers": drivers,
 				"positions": positions,
 				"fastest": fastest,
+				"laps": data["laps"],
 			}
 		except Exception as e:
 			self.bot.debug(e)
 			raise e
 
-
 	async def handle_result(self, ctx:commands.Context, file:str, date:datetime) -> None:
 		try:
 			print(f"handle_result: {file}")
 			data = self.load_result(file)
-			# example data = tmp/output.json
-			# save the result to a file with tab separated values
-			with open(f"{file}.result.json", "w") as f:
-				json.dump(data, f, indent='\t')
+			# save the result
+			Dest.json.save(
+				Dest.join(
+					self.bot.get_temp('results'),
+					Dest.suffix(file, '.result')
+				),
+				data
+			)
 			if data is None:
 				raise ValueError("Error loading result.")
 			track = self.fullTrackName(data["track"])
-			if data["laps"] == 0:
+			if len(data["laps"]) == 0:
 				embed = self.bot.embed(
 					ctx = ctx,
 					title = f"{data['server']} · {date.strftime('%d %B %Y')} ***` {data['typeName']} `***",
@@ -440,7 +448,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			embed = self.bot.embed(
 				ctx = ctx,
 				title = f"{data['server']} · {date.strftime('%d %B %Y')}   ***` {data['typeName']} `***",
-				description = f"**{track}** · **{data['laps']} laps** in **{self.convert_time(data['time'])}** {'🌧️' if data['wet'] == 1 else ''}",
+				description = f"**{track}** · **{data['session']['laps']} laps** in **{self.convert_time(data['session']['time'])}**{' · ( 🌧️ )' if data['wet'] == 1 else ''}",
 				bot = True,
 			)
 			place = 1
@@ -531,6 +539,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					)
 					place += 1
 			# show fastest lap
+
 			fastestDriver = self.driverName(data['cars'][data['fastest']['car']]['drivers'][data['fastest']['driver']])
 			embed.add_field(
 				name = "Fastest Lap",
@@ -570,108 +579,88 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 	async def handle_request(self, ctx:commands.Context, session:str, date:str = None, time:str = None) -> None:
 		try:
 			print(f"handle_request: {session} {date} {time}")
-			config = self.bot.get_config(ctx.guild, "connect", "acc")
-			latest = False
-			if config is None:
-				raise ValueError("ACC Dedicated Server configuration not found.")
-			if session not in ["FP", "Q", "R"]:
-				raise ValueError("Session must be one of **FP**, **Q**, **R**.")
-			if date is None or date == "" or date.lower() == "latest":
-				print("latest")
-				date = "\d{6}"
-				date_str = "latest"
-				time = "\d{6}"
-				time_str = "latest"
-				latest = True
-			else:
-				print("not latest")
-				if date.lower() == "today":
-					date = datetime.now(timezone.utc)
-				elif date.lower() == "yesterday":
-					date = datetime.now(timezone.utc) - timedelta(days=1)
-				elif re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-					date = datetime.strptime(date, "%y%m%d")
-				elif re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-					date = datetime.strptime(date, "%Y%m%d")
-				elif re.match(r"^[0-9]{4}-[0-1]?[0-9]-[0-3]?[0-9]$", date):
-					date = datetime.strptime(date, "%Y-%m-%d")
-				elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{2}$", date):
-					date = datetime.strptime(date, "%d/%m/%y")
-				elif re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
-					date = datetime.strptime(date, "%d/%m/%Y")
+			async with ctx.typing():
+				config = self.bot.get_config(ctx.guild, "connect", "acc")
+				latest = False
+				if config is None:
+					raise ValueError("ACC Dedicated Server configuration not found.")
+				if session not in ["FP", "Q", "R"]:
+					raise ValueError("Session must be one of **FP**, **Q**, **R**.")
+				if date is None or date == "" or date.lower() == "latest":
+					print("latest")
+					date = self.parse_date(date)
+					date_str = "latest"
+					time = self.parse_time(time)
+					time_str = "latest"
+					latest = True
 				else:
-					raise ValueError("Invalid date format. Try **YYMMDD**, **YYYYMMDD**, **YYYY-MM-DD**, or **DD/MM/YY**.")
-				date_str = date.strftime("%d %B %Y")
-				if time is None:
-					time = r"\d{6}"
-					time_str = "any time"
-				else:
-					if time == "latest":
+					print("not latest")
+					date = self.parse_date(date)
+					date_str = datetime.strptime(date, "%y%m%d").strftime("%d %B %Y")
+					if time is None or time == "latest":
 						time = r"\d{6}"
 						time_str = "latest"
 						latest = True
+					if time == '*':
+						time = r"\d{6}"
+						time_str = "list"
+						latest = False
 					else:
-						if re.match(r"[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
-							time = re.sub(r"[\.:]", "", time)
-						if not re.match(r"[0-2][0-9][0-5][0-9][0-5][0-9]", time):
-							raise ValueError("Invalid time format. Try **HHMMSS**.")
+						time = self.parse_time(time)
 						time_str = time
-			if date_str == "latest":
 				pattern = f"{date}_{time}_{session}.json"
-			else:
-				pattern = f"{date.strftime('%y%m%d')}_{time}_{session}.json"
-			results = self.get_results(config, pattern, latest)
-			if results is None:
-				embed = self.bot.embed(
-					ctx = ctx,
-					title = "Error",
-					description = "No results found.",
-					bot = True,
-				)
-				embed.set_footer(
-					text = f"Powered by {self.bot.__POWERED_BY__}",
-				)
-				return await ctx.send(
-					embed = embed
-				)
-			if len(results) == 0:
-				embed = self.bot.embed(
-					ctx = ctx,
-					title = "Error",
-					description = f"No results found for **{session}** on **{date_str}** at **{time_str}**.",
-					bot = True,
-				)
-				embed.set_footer(
-					text = f"Powered by {self.bot.__POWERED_BY__}",
-				)
-				return await ctx.send(
-					embed = embed
-				)
-			if len(results) > 1:
-				times = []
-				for result in results:
-					_, time, _ = os.path.basename(result).split("_")
-					times.append(
-						time
+				results = self.get_results(config, pattern, latest)
+				if results is None:
+					embed = self.bot.embed(
+						ctx = ctx,
+						title = "Error",
+						description = "No results found.",
+						bot = True,
 					)
-				embed = self.bot.embed(
+					embed.set_footer(
+						text = f"Powered by {self.bot.__POWERED_BY__}",
+					)
+					return await ctx.send(
+						embed = embed
+					)
+				if len(results) == 0:
+					embed = self.bot.embed(
+						ctx = ctx,
+						title = "Error",
+						description = f"No results found for **{session}** on **{date_str}** at **{time_str}**.",
+						bot = True,
+					)
+					embed.set_footer(
+						text = f"Powered by {self.bot.__POWERED_BY__}",
+					)
+					return await ctx.send(
+						embed = embed
+					)
+				if len(results) > 1:
+					times = []
+					for result in results:
+						_, time, _ = Dest.filename(result).split("_")
+						times.append(
+							time
+						)
+					embed = self.bot.embed(
+						ctx = ctx,
+						title = f"Multiple results found for **{session}** on **{date_str}** at **{time_str}**.",
+						description = f"Please select one of the following times:\n\n{', '.join(times)}",
+						bot = True,
+					)
+					return await ctx.send(
+						embed = embed
+					)
+				# extract date & time from filename and convert to datetime yymmdd_hhmmss
+				date, time, _ = Dest.filename(results[0]).split("_")
+				date = datetime.strptime(f"{date}{time}", "%y%m%d%H%M%S")
+				#print(f"date: {date}")
+				return await self.handle_result(
 					ctx = ctx,
-					title = f"Multiple results found for **{session}** on **{date_str}** at **{time_str}**.",
-					description = f"Please select one of the following times:\n\n{', '.join(times)}",
-					bot = True,
+					file = results[0],
+					date = date,
 				)
-				return await ctx.send(
-					embed = embed
-				)
-			# extract date & time from filename and convert to datetime yymmdd_hhmmss
-			date, time, _ = os.path.basename(results[0]).split("_")
-			date = datetime.strptime(f"{date}{time}", "%y%m%d%H%M%S")
-			#print(f"date: {date}")
-			return await self.handle_result(
-				ctx = ctx,
-				file = results[0],
-				date = date,
-			)
 		except ValueError as e:
 			traceback.print_exc()
 			raise e
@@ -801,6 +790,235 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				ctx = ctx,
 			)
 
+	def parse_date(self, date:str, throw:bool = True) -> str | None:
+		if date is None or date.lower() == "latest":
+			return "\d{6}"
+		if date.lower() == "today":
+			return datetime.now(timezone.utc).strftime("%y%m%d")
+		if date.lower() == "yesterday":
+			return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%y%m%d")
+		if re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
+			return datetime.strptime(date, "%y%m%d").strftime("%y%m%d")
+		if re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
+			return datetime.strptime(date, "%Y%m%d").strftime("%y%m%d")
+		if re.match(r"^[0-9]{4}-[0-1]?[0-9]-[0-3]?[0-9]$", date):
+			return datetime.strptime(date, "%Y-%m-%d").strftime("%y%m%d")
+		if re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{2}$", date):
+			return datetime.strptime(date, "%d/%m/%y").strftime("%y%m%d")
+		if re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
+			return datetime.strptime(date, "%d/%m/%Y").strftime("%y%m%d")
+		if throw:
+			raise ValueError("Invalid date format. Try **YYMMDD**, **YYYYMMDD**, **YYYY-MM-DD**, or **DD/MM/YY**.")
+
+	def parse_time(self, time:str, throw:bool = True) -> str | None:
+		if time is None or time.lower() == "latest":
+			return "\d{6}"
+
+		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
+			return re.sub(r'[\.:]', '', time)
+		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9]", time):
+			return re.sub(r'[\.:]', '', time) + r'\d{2}'
+		if not re.match(r"[0-2][0-9][0-5][0-9]", time):
+			if throw:
+				raise ValueError("Invalid time format. Try **HHMM**.")
+
+	def parse_graph_input(self, input:str = None) -> tuple:
+		# check if input is empty
+		if input is None:
+			input = "latest"
+		# split input per space
+		inputs = input.split(" ")
+		# check if input is a date
+		date:str = None
+		time:str = None
+		session:str = "(R|Q|FP)"
+		top:list[int] = None
+		number:int|None = None
+		for input in inputs:
+			if input.lower() == "latest":
+				date = "\d{6}"
+				time = "\d{6}"
+				session = '(R|Q|FP)'
+			else:
+				# check if input is a date
+				date = self.parse_date(input, False)
+				# check if input is a time
+				time = self.parse_time(input, False)
+				if date is None:
+					date = "\d{6}"
+				if time is None:
+					time = "\d{6}"
+			# check if input has a race type: R, Q, FP
+			if input.lower() in ["r", "q", "fp"]:
+				session = input.upper()
+			if input.startswith("#"):
+				number = int(input.replace("#", ""))
+			if re.match(r"^[0-9]+-[0-9]+$", input):
+				top = input.split("-")
+				# convert to int
+				top = [int(top[0]), int(top[1])]
+				if int(top[0]) > int(top[1]):
+					raise ValueError("Invalid range. The first number must be lower than the second.")
+			# check if input is a car number
+		if number is not None:
+			top = None
+		return date, time, session, top, number
+
+	@commands.command(
+		description = "Show a graph of drivers lap times",
+		usage = "graph [input with date and time or latest and maybe type of the race and #car number or 1-10 for top 10]",
+		hidden = False,
+	)
+	@commands.guild_only()
+	@commands.is_owner()
+	@commands.has_permissions(moderate_members=True)
+	async def graph(self, ctx:commands.Context, *, input:str = None) -> None:
+		"""
+		Show a graph of drivers lap times
+		```
+		{ctx.prefix}graph 241231 235959 r
+		{ctx.prefix}graph 241231 235959 q
+		{ctx.prefix}graph 241231 235959 fp
+		{ctx.prefix}graph latest
+		{ctx.prefix}graph latest r 1-10
+		{ctx.prefix}graph latest r #21
+		{ctx.prefix}graph 241231 235959 q 5-10
+		{ctx.prefix}graph 241231 235959 fp #21
+		```
+		"""
+		try:
+			print(f"graph")
+			async with ctx.typing():
+				# check if input is a date
+				date, time, session, top, number = self.parse_graph_input(input)
+				print(f"\ndate: {date}\ntime: {time}\nsession: {session}\ntop: {top}\nnumber: {number}\n")
+				# get the results from temp result directory
+				temp = self.bot.get_temp("results")
+				regexp = f"^{date}_{time}_{session}\.result\.json$"
+				resultFile = Dest.scan(temp, regexp, 'last')
+				if resultFile is None:
+					raise ValueError("No results found. Run the race, qualify or practice command first.")
+				# get date and time and session from filename: 240309_220433_R.json.result.json
+				filename = Dest.filename(resultFile)
+				print(f"filename: {filename}")
+				date, time, session = filename.split(".")[0].split("_")
+				print(f"date: {date}\ntime: {time}\nsession: {session}")
+				_top = f"{top[0]}-{top[1]}" if top is not None else "all"
+				_number = f"{number}" if number is not None else "all"
+				jsonFile = f"{date}_{time}_{session}_{_top}_{_number}.json"
+				print(f"jsonFile: {jsonFile}")
+				pngFile = f"{date}_{time}_{session}_{_top}_{_number}.png"
+				print(f"pngFile: {pngFile}")
+				# check if png file exists
+				if Dest.exists(Dest.join(temp, pngFile)):
+					# send the png
+					await ctx.send(
+						file=discord.File(
+							Dest.join(temp, pngFile)
+						)
+					)
+					return
+				# load the result sa json
+				result = Dest.json.load(resultFile)
+				#print(f"data: {data}")
+				data = []
+				fastest_laptime_ms = 999999999
+				slowest_laptime_ms = 0
+				#max_laps = 0
+				slowest_laptimes = {}
+				fastest_laptimes = {}
+				position = 1
+				for car in result['cars'].values():
+					for driver in car['drivers'].values():
+						if number is not None and car['number'] != number:
+							continue
+						if top is not None and position > top[1]:
+							continue
+						if top is not None and position < top[0]:
+							continue
+						lap = 0
+						for laptime_ms in driver['laps']:
+							if lap == 0:
+								lap += 1
+								continue
+							laptime = self.convert_time(laptime_ms)
+							if slowest_laptime_ms < laptime_ms:
+								slowest_laptime_ms = laptime_ms
+							if fastest_laptime_ms > laptime_ms:
+								fastest_laptime_ms = laptime_ms
+							data.append({
+								"driver": f"#{car['number']} {driver['lastName']}",
+								"lap": lap,
+								"laps": len(driver['laps']) - 1, # -1 for formation lap
+								"laptime": laptime,
+								"laptime_ms": laptime_ms,
+							})
+							if laptime_ms > slowest_laptimes.get(driver['playerId'], 0):
+								slowest_laptimes[driver['playerId']] = laptime_ms
+							if laptime_ms < fastest_laptimes.get(driver['playerId'], 999999999):
+								fastest_laptimes[driver['playerId']] = laptime_ms
+							lap += 1
+					position += 1
+				# save the figure as json
+				Dest.json.save(
+					Dest.join(temp, jsonFile),
+					data,
+				)
+				df = pd.DataFrame(data)
+				# create a figure and axis
+				fig = px.line(
+					df,
+					x = "lap",
+					y = "laptime_ms",
+					color = "driver",
+					title = f"{result['server']} · {self.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps",
+					labels = {
+						"laptime_ms": "Lap Time (ms)",
+						"lap": "Laps",
+						"driver": "Drivers",
+					},
+					markers=True,
+					template="plotly_dark",
+					range_x=[1, result['session']['laps']],
+				)
+				width = max(50 * result['session']['laps'] + 400, 1920)
+				height = 1080
+				fig.update_layout(
+					xaxis = dict(
+						tickmode = 'linear',
+					),
+					width = width,
+					height = height,
+				)
+				fig.update_yaxes(
+					tickvals=df['laptime_ms'],
+					ticktext=df['laptime'],
+					#range=[fastest_laptime_ms, slowest_average_laptime_ms],
+					title="Laptime"
+				)
+				# save the figure as png
+				fig.write_image(
+					Dest.join(temp, pngFile)
+				)
+				# send the png
+				await ctx.send(
+					file=discord.File(
+						Dest.join(temp, pngFile)
+					)
+				)
+		except ValueError as e:
+			traceback.print_exc()
+			await self.bot.warn(
+				e,
+				ctx = ctx,
+			)
+		except Exception as e:
+			traceback.print_exc()
+			await self.bot.error(
+				e,
+				ctx = ctx,
+			)
+
 	@commands.command(
 		description = "Clean up the FTP from empty result files",
 		usage = "clean",
@@ -832,24 +1050,21 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			print(f"filenames: {filenames}")
 			delete_files = []
 			for filename in filenames:
-				local_filename = os.path.join(storage, filename)
-				if not os.path.exists(local_filename):
+				local_filename = Dest.join(storage, filename)
+				if not Dest.exists(local_filename):
 					with open(local_filename, "wb") as file:
 						self.ftp.retrbinary(f"RETR {filename}",
 							file.write
 						)
 				# open the file as json
-				with open(local_filename, "rb") as f:
-					data = json.load(f)
+				data = Dest.json.load(local_filename)
 				# check if the file is empty
 				if len(data["sessionResult"]["leaderBoardLines"]) == 0:
-
 					r = self.ftp.delete(filename)
 					print(f"delete: {filename} {r}")
 					#exit()
 					# rename local file to .backup.json
-
-					os.rename(local_filename, f"{local_filename}.backup.json")
+					Dest.rename(local_filename, Dest.backup(local_filename))
 					print(f"empty: {filename}")
 					delete_files.append(filename)
 			self.ftp.quit()

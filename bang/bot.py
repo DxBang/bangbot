@@ -1,15 +1,16 @@
-import os, sys
+import sys
 from genericpath import exists
 import traceback
 import json
 import random
 import discord
-import tempfile
 from discord.ext import commands
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
 from typing import Coroutine, NamedTuple
 import platform
+from bang.dest import Dest
+
 
 def cprint(message:str, fg:str="white", bg:str="black", end:str="\n") -> None:
 	fg:int = {
@@ -86,7 +87,7 @@ class Bang(commands.Bot):
 			# print in white
 			cprint(f"{self.__name__} v{self.__version__} (discord.py v{discord.__version__}) (Python v{platform.python_version()})", "blue")
 			print("Loading config.json")
-			with open(sys.path[0] + "/config.json", encoding="utf-8") as f:
+			with open(Dest.file("config.json"), encoding="utf-8") as f:
 				self.config = json.load(f)
 			self.config.update(
 				{
@@ -97,7 +98,7 @@ class Bang(commands.Bot):
 				"service": datetime.now(timezone.utc),
 				"connect": None,
 			}
-			with open(sys.path[0] + "/guild/_default_.json", encoding="utf-8") as f:
+			with open(Dest.file("guild/_default_.json"), encoding="utf-8") as f:
 				self.config["default"] = json.load(f)
 			intents = discord.Intents.all()
 			super().__init__(
@@ -277,7 +278,7 @@ class Bang(commands.Bot):
 	async def on_guild_available(self, guild:discord.Guild) -> None:
 		try:
 			cprint(f"on_guild_available({guild})", "green")
-			config_file = sys.path[0] + "/guild/" + str(guild.id) + ".json"
+			config_file = Dest.file(f"guild/{str(guild.id)}.json")
 			if exists(config_file):
 				with open(config_file, encoding="utf-8") as fh:
 					config = json.loads(
@@ -339,22 +340,10 @@ class Bang(commands.Bot):
 
 	def get_temp(self, subfolder:str = None) -> str:
 		try:
-			use_system_temp = self.config["bot"]["use_system_temp"]
-			if use_system_temp is not None and use_system_temp is True:
-				temp = tempfile.gettempdir()
-			else:
-				temp = os.path.join(
-					sys.path[0],
-					"tmp"
-				)
-			if subfolder is not None:
-				temp = os.path.join(
-					temp,
-					subfolder
-				)
-			if not os.path.exists(temp):
-				os.makedirs(temp)
-			return temp
+			return Dest.temp(
+				system = self.config["bot"]["use_system_temp"],
+				subfolder = subfolder
+			)
 		except Exception as e:
 			self.debug(e)
 
@@ -446,7 +435,7 @@ class Bang(commands.Bot):
 	async def download_attachment(self, attachment:discord.Attachment, subfolder:str = None) -> discord.File:
 		try:
 			temp = self.get_temp(subfolder)
-			path = os.path.join(
+			path = Dest.join(
 				temp,
 				attachment.filename
 			)
@@ -566,7 +555,7 @@ class Bang(commands.Bot):
 			if isinstance(files, list) and len(files) > 0:
 				for file in files:
 					file.close()
-					os.remove(file.fp.name)
+					Dest.remove(file.fp.name)
 		except Exception as e:
 			cprint(
 				message = f"{__class__.__name__}/{sys._getframe(0).f_code.co_name}/error: {e}",
