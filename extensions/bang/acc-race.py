@@ -890,6 +890,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			print(f"graph")
 			async with ctx.typing():
 				# check if input is a date
+				config = self.bot.get_config(ctx.guild, "race", "graph")
 				date, time, session, top, number = self.parse_graph_input(input)
 				print(f"\ndate: {date}\ntime: {time}\nsession: {session}\ntop: {top}\nnumber: {number}\n")
 				# get the results from temp result directory
@@ -910,16 +911,19 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				pngFile = f"{date}_{time}_{session}_{_top}_{_number}.png"
 				print(f"pngFile: {pngFile}")
 				# check if png file exists
+
 				if Dest.exists(Dest.join(temp, pngFile)):
-					# send the png
 					await ctx.send(
 						file=discord.File(
 							Dest.join(temp, pngFile)
 						)
 					)
 					return
+
 				# load the result sa json
 				result = Dest.json.load(resultFile)
+				if len(result['laps']) == 0:
+					raise ValueError(f"No laps found, no data to graph. Maybe apply a race type as I found an empty {result['typeName']} session.")
 				#print(f"data: {data}")
 				data = []
 				fastest_laptime_ms = 999999999
@@ -960,6 +964,8 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 							lap += 1
 					position += 1
 				# save the figure as json
+				if len(data) == 0:
+					raise ValueError("No data found.")
 				Dest.json.save(
 					Dest.join(temp, jsonFile),
 					data,
@@ -970,6 +976,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					df,
 					x = "lap",
 					y = "laptime_ms",
+					line_shape = "spline",
 					color = "driver",
 					title = f"{result['server']} · {self.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps",
 					labels = {
@@ -977,12 +984,12 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						"lap": "Laps",
 						"driver": "Drivers",
 					},
-					markers=True,
-					template="plotly_dark",
-					range_x=[1, result['session']['laps']],
+					markers = True,
+					template = config['template'],
+					range_x = [1, result['session']['laps']],
 				)
-				width = max(50 * result['session']['laps'] + 400, 1920)
-				height = 1080
+				width = max(config['lap_spacing'] * result['session']['laps'] + 400, config['min_width'])
+				height = config['min_height']
 				fig.update_layout(
 					xaxis = dict(
 						tickmode = 'linear',
@@ -991,11 +998,32 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					height = height,
 				)
 				fig.update_yaxes(
-					tickvals=df['laptime_ms'],
-					ticktext=df['laptime'],
-					#range=[fastest_laptime_ms, slowest_average_laptime_ms],
-					title="Laptime"
+					tickvals = df['laptime_ms'],
+					ticktext = df['laptime'],
+					#range = [fastest_laptime_ms, slowest_average_laptime_ms],
+					title = "Laptime"
 				)
+				fig.update_traces(
+					line = {
+						'width': 5,
+					}
+				)
+				"""
+				if config['logo']['source']:
+					fig.add_layout_image(
+						dict(
+							source = config['logo']['source'],
+							xref = "paper",
+							yref = "paper",
+							x = 1,
+							y = 1,
+							sizex = 0.2,
+							sizey = 0.2,
+							xanchor = "right",
+							yanchor = "bottom",
+						)
+					)
+				"""
 				# save the figure as png
 				fig.write_image(
 					Dest.join(temp, pngFile)

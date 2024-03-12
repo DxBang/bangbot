@@ -27,6 +27,32 @@
 		"font": {
 			"title": ["Race Sport.ttf", 48],
 			"sans": ["LSANS.TTF", 24]
+		},
+		"points": {
+			"fastestlap": 2,
+			"positions": [
+				25,
+				18,
+				15,
+				12,
+				10,
+				8,
+				6,
+				4,
+				2,
+				1
+			]
+		},
+		"graph": {
+			"template": "plotly_dark",
+			"min_width": 1920,
+			"min_height": 1080,
+			"lap_spacing": 50,
+			"logo": {
+				"source": "https://bang.systems/images/logo/bangsystems-logo-v2.png",
+				"width": 200,
+				"height": 200
+			}
 		}
 	},
 	"label": {
