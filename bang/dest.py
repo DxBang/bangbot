@@ -186,10 +186,8 @@ class Dest:
 	@staticmethod
 	def file(file:str) -> str:
 		try:
-			return os.path.join(
-				os.getcwd(),
-				file
-			)
+			# use os.path.abspath to get the absolute path with the correct directory separator
+			return os.path.abspath(file)
 		except Exception as e:
 			raise e
 

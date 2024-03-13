@@ -1,9 +1,6 @@
 """
 Login to ACC Dedicated Server via FTP and get the race results.
 """
-import os
-#import sys
-import json
 import ftplib
 import plotly.express as px
 import pandas as pd
@@ -12,7 +9,7 @@ import re
 import discord
 #from PIL import Image, ImageDraw, ImageFont
 from discord.ext import commands
-from discord import app_commands
+#from discord import app_commands
 from bang.dest import Dest
 import base64
 import traceback
@@ -981,7 +978,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					color = "driver",
 					title = f"{result['server']} · {self.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps",
 					labels = {
-						"laptime_ms": "Lap Time (ms)",
+						"laptime_ms": "Laptime",
 						"lap": "Laps",
 						"driver": "Drivers",
 					},
@@ -995,22 +992,84 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				fig.update_layout(
 					xaxis = dict(
 						tickmode = 'linear',
+						title = dict(
+							font = dict(
+								size = config['label']['size'],
+							)
+						)
 					),
 					yaxis = dict(
-						title = "Laptime",
 						tickmode = 'array',
 						tickvals = ytickvals,
 						ticktext = [self.convert_time(tickval) for tickval in ytickvals],
+						title = dict(
+							font = dict(
+								size = config['label']['size'],
+							)
+						),
 					),
 					width = width,
 					height = height,
+					title = dict(
+						font = dict(
+							size = config['title']['size'],
+						)
+					),
+					font = dict(
+						size = config['font']['size'],
+					),
 				)
 				fig.update_traces(
 					line = {
 						'width': 5,
 					}
 				)
-
+				slowest_laptime_position = df[df['laptime_ms'] == slowest_laptime_ms].index[0]
+				fastest_laptime_position = df[df['laptime_ms'] == fastest_laptime_ms].index[0]
+				fig.add_annotation(
+					x=df['lap'][slowest_laptime_position],
+					y=df['laptime_ms'][slowest_laptime_position],
+					text=f"{self.convert_time(slowest_laptime_ms)}",
+					showarrow=True,
+					arrowhead=1,
+					arrowwidth=3,
+					arrowcolor=config['annotation']['slowest']['color'],
+					font=dict(
+						color=config['annotation']['slowest']['color'],
+						size=config['annotation']['slowest']['size']
+					),
+					ax=-20,
+					ay=-40,
+				)
+				fig.add_annotation(
+					x=df['lap'][fastest_laptime_position],
+					y=df['laptime_ms'][fastest_laptime_position],
+					text=f"{self.convert_time(fastest_laptime_ms)}",
+					showarrow=True,
+					arrowhead=1,
+					arrowwidth=3,
+					arrowcolor=config['annotation']['fastest']['color'],
+					font=dict(
+						color=config['annotation']['fastest']['color'],
+						size=config['annotation']['fastest']['size']
+					),
+					ax=20,
+					ay=40,
+				)
+				average_laptime_ms = sum([lap['laptime_ms'] for lap in data]) / len(data)
+				# create a highlight for average laptime
+				fig.add_shape(
+					type="line",
+					x0=1,
+					y0=average_laptime_ms,
+					x1=result['session']['laps'],
+					y1=average_laptime_ms,
+					line=dict(
+						color="rgb(192,192,192)",
+						width=2,
+						dash="dot",
+					),
+				)
 				if config['logo']['source'] != "" and config['logo']['source'] is not None:
 					logo = Dest.file(config['logo']['source'])
 					if Dest.exists(logo):

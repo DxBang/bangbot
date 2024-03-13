@@ -48,6 +48,15 @@
 			"min_width": 1920,
 			"min_height": 1080,
 			"lap_spacing": 50,
+			"title": {
+				"size": 28
+			},
+			"label": {
+				"size": 24
+			},
+			"font": {
+				"size": 18
+			},
 			"logo": {
 				"source": "image/bangsystems.png",
 				"x": 1,
@@ -57,6 +66,16 @@
 				"xanchor": "right",
 				"yanchor": "middle",
 				"opacity": 0.1
+			},
+			"annotation": {
+				"fastest": {
+					"color": "rgb(110, 100, 250)",
+					"size": 20
+				},
+				"slowest": {
+					"color": "rgb(250, 100, 110)",
+					"size": 20
+				}
 			}
 		}
 	},
