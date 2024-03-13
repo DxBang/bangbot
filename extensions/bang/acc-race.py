@@ -822,7 +822,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			if throw:
 				raise ValueError("Invalid time format. Try **HHMM**.")
 
-	def parse_graph_input(self, input:str = None) -> tuple:
+	def parse_graph_input(self, input:str = None) -> tuple[str, str, str, list[int]|None, int|None]:
 		# check if input is empty
 		if input is None:
 			input = "latest"

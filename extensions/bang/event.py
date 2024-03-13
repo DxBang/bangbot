@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+import traceback
 
 class Event(commands.Cog, name="Event Management"):
 	__slots__ = (
@@ -103,18 +104,130 @@ class Event(commands.Cog, name="Event Management"):
 				ctx = ctx,
 			)
 
+	def build_embed_fields(self, embed:discord.Embed, member:discord.Member, action:str, emoji:discord.Emoji) -> tuple[discord.Embed, str]:
+		"""Build a list of embed fields from an event sign up."""
+		try:
+			print(f"build_embed_fields: {embed}, {member}, {action}, {emoji}")
+			label = self.bot.get_config(member.guild, "label", "event")
+			if label['accept']['emoji'] not in embed.fields[0].name and label['accept']['name'] not in embed.fields[0].name:
+				return embed, "ignore"
+			if label['maybe']['emoji'] not in embed.fields[1].name and label['maybe']['name'] not in embed.fields[1].name:
+				return embed, "ignore"
+			if label['decline']['emoji'] not in embed.fields[2].name and label['decline']['name'] not in embed.fields[2].name:
+				return embed, "ignore"
+			items_limit = 20
+			column = {
+				"accept": 0,
+				"maybe": 1,
+				"decline": 2,
+			}
+			row = 0
+			accepts = []
+			maybes = []
+			declines = []
+			field_multiplier = 3
+			for idx, field in enumerate(embed.fields):
+				if idx % field_multiplier == column['accept']: # 0
+					if len(field.value.strip()) > 0:
+						accepts.extend(field.value.strip().split("\n"))
+				elif idx % field_multiplier == column['maybe']: # 1
+					if len(field.value.strip()) > 0:
+						maybes.extend(field.value.strip().split("\n"))
+				elif idx % field_multiplier == column['decline']: # 2
+					if len(field.value.strip()) > 0:
+						declines.extend(field.value.strip().split("\n"))
+				else:
+					print("error")
+			# make sure the list is unique
+			accepts = list(set(accepts))
+			maybes = list(set(maybes))
+			declines = list(set(declines))
+			if action == "add":
+				valid_reaction = []
+				for er in label:
+					valid_reaction.append(label[er]["emoji"])
+				if emoji.name not in valid_reaction:
+					return embed, "remove"
+				if emoji.name == label['accept']['emoji']:
+					action = "update"
+					accepts.append(member.mention)
+					# remove from maybes and declines
+					if member.mention in maybes:
+						maybes.remove(member.mention)
+					if member.mention in declines:
+						declines.remove(member.mention)
+				elif emoji.name == label['maybe']['emoji']:
+					action = "update"
+					maybes.append(member.mention)
+					# remove from accepts and declines
+					if member.mention in accepts:
+						accepts.remove(member.mention)
+					if member.mention in declines:
+						declines.remove(member.mention)
+				elif emoji.name == label['decline']['emoji']:
+					action = "update"
+					declines.append(member.mention)
+					# remove from accepts and maybes
+					if member.mention in accepts:
+						accepts.remove(member.mention)
+					if member.mention in maybes:
+						maybes.remove(member.mention)
+				else:
+					return embed, "ignore"
+			elif action == "remove":
+				if emoji.name == label['accept']['emoji'] and member.mention in accepts:
+					action = "update"
+					accepts.remove(member.mention)
+				elif emoji.name == label['maybe']['emoji'] and member.mention in maybes:
+					action = "update"
+					maybes.remove(member.mention)
+				elif emoji.name == label['decline']['emoji'] and member.mention in declines:
+					action = "update"
+					declines.remove(member.mention)
+				else:
+					return embed, "ignore"
+			else:
+				return embed, "ignore"
+			# split the list into multiple lists if the list has more than items_limit members
+			accepts = [accepts[i:i + items_limit] for i in range(0, len(accepts), items_limit)]
+			maybes = [maybes[i:i + items_limit] for i in range(0, len(maybes), items_limit)]
+			declines = [declines[i:i + items_limit] for i in range(0, len(declines), items_limit)]
+			largest = max(len(accepts), len(maybes), len(declines))
+			# create the fields
+			embed.clear_fields()
+			for row in range(largest):
+				accept = accepts[row] if row < len(accepts) else []
+				maybe = maybes[row] if row < len(maybes) else []
+				decline = declines[row] if row < len(declines) else []
+				for col, members in enumerate([accept, maybe, decline]):
+					if col == column['accept']:
+						name = f"{label['accept']['emoji']} {label['accept']['name']}"
+					elif col == column['maybe']:
+						name = f"{label['maybe']['emoji']} {label['maybe']['name']}"
+					elif col == column['decline']:
+						name = f"{label['decline']['emoji']} {label['decline']['name']}"
+					embed.add_field(
+						name = name,
+						value = "\n".join(members),
+						inline = True,
+					)
+			return embed, action
+		except Exception as e:
+			raise e
+
 	@commands.Cog.listener()
 	async def on_raw_reaction_add(self, payload:discord.RawReactionActionEvent) -> None:
 		"""Add a user to the list of people going/maybe/not going to an event."""
 		try:
 			message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-			#author = message.author
 			guild = self.bot.get_guild(payload.guild_id)
 			member = guild.get_member(payload.user_id)
 			if member.id == self.bot.user.id:
 				# bot predefined reaction
 				return
 			if len(message.embeds) == 0:
+				return
+			if len(message.embeds[0].fields) < 3:
 				return
 			roles = self.bot.get_config(message.guild, "event", "roles")
 			# roles format: [729023577977782322, 729023577977782324] or boolean True|False
@@ -137,68 +250,38 @@ class Event(commands.Cog, name="Event Management"):
 								break
 					if not found:
 						return await message.remove_reaction(payload.emoji, member)
-			label = self.bot.get_config(message.guild, "label", "event")
-			embed = message.embeds[0]
-			if len(embed.fields) != 3:
-				return
-			fields = embed.fields
-			if label['accept']['emoji'] not in fields[0].name and label['accept']['name'] not in fields[0].name:
-				return
-			if label['maybe']['emoji'] not in fields[1].name and label['maybe']['name'] not in fields[1].name:
-				return
-			if label['decline']['emoji'] not in fields[2].name and label['decline']['name'] not in fields[2].name:
-				return
-			valid_reaction = []
-			for er in label:
-				valid_reaction.append(label[er]["emoji"])
-			if payload.emoji.name not in valid_reaction:
+			embed, action = self.build_embed_fields(message.embeds[0], member, "add", payload.emoji)
+			print(f"add action: {action}")
+			if action == "remove":
 				return await message.remove_reaction(payload.emoji, member)
-			goings = fields[0].value.split("\n")
-			maybes = fields[1].value.split("\n")
-			declines = fields[2].value.split("\n")
-			emoji = str(payload.emoji)
-			# remove the user from the list
-			if member.mention in goings:
-				goings.remove(member.mention)
-			elif member.mention in maybes:
-				maybes.remove(member.mention)
-			elif member.mention in declines:
-				declines.remove(member.mention)
-			# add the user to the list
-			if emoji == label['accept']['emoji']:
-				goings.append(member.mention)
-			elif emoji == label['maybe']['emoji']:
-				maybes.append(member.mention)
-			elif emoji == label['decline']['emoji']:
-				declines.append(member.mention)
-			# update the embed
-			embed.set_field_at(
-				0,
-				name = f"{label['accept']['emoji']} {label['accept']['name']}",
-				value = "\n".join(goings),
-				inline = True,
-			)
-			embed.set_field_at(
-				1,
-				name = f"{label['maybe']['emoji']} {label['maybe']['name']}",
-				value = "\n".join(maybes),
-				inline = True,
-			)
-			embed.set_field_at(
-				2,
-				name = f"{label['decline']['emoji']} {label['decline']['name']}",
-				value = "\n".join(declines),
-				inline = True,
-			)
-			await message.edit(
-				embed = embed,
-			)
+			if action == "update":
+				await message.edit(
+					embed = embed,
+				)
 			for reaction in message.reactions:
-				if reaction.emoji == emoji:
+				if reaction.emoji == payload.emoji.name:
 					continue
 				members = [user async for user in reaction.users()]
 				if member in members:
 					await message.remove_reaction(reaction.emoji, member)
+		except discord.HTTPException as e:
+			ctx = await self.bot.get_context(message)
+			if ctx:
+				await ctx.send(
+					"HTTPException: {e}",
+					delete_after = 60,
+					ephemeral = True,
+					reference = message,
+				)
+		except discord.RateLimited as e:
+			ctx = await self.bot.get_context(message)
+			if ctx: # can we even report this to the user?
+				await ctx.send(
+					"RateLimited: {e}",
+					delete_after = 60,
+					ephemeral = True,
+					reference = message,
+				)
 		except Exception as e:
 			print(f"error: {e}")
 			raise e
@@ -215,52 +298,11 @@ class Event(commands.Cog, name="Event Management"):
 				return
 			if len(message.embeds) == 0:
 				return
-			label = self.bot.get_config(message.guild, "label", "event")
-			embed = message.embeds[0]
-			if len(embed.fields) != 3:
+			if len(message.embeds[0].fields) < 3:
 				return
-			fields = embed.fields
-			if label['accept']['emoji'] not in fields[0].name and label['accept']['name'] not in fields[0].name:
-				return
-			if label['maybe']['emoji'] not in fields[1].name and label['maybe']['name'] not in fields[1].name:
-				return
-			if label['decline']['emoji'] not in fields[2].name and label['decline']['name'] not in fields[2].name:
-				return
-			goings = fields[0].value.split("\n")
-			maybes = fields[1].value.split("\n")
-			declines = fields[2].value.split("\n")
-			if len(message.embeds) == 0:
-				return
-			emoji = str(payload.emoji)
-			update = False
-			if emoji == label['accept']['emoji'] and member.mention in goings:
-				goings.remove(member.mention)
-				update = True
-			elif emoji == label['maybe']['emoji'] and member.mention in maybes:
-				maybes.remove(member.mention)
-				update = True
-			elif emoji == label['decline']['emoji'] and member.mention in declines:
-				declines.remove(member.mention)
-				update = True
-			if update:
-				embed.set_field_at(
-					0,
-					name = f"{label['accept']['emoji']} {label['accept']['name']}",
-					value = "\n".join(goings),
-					inline = True,
-				)
-				embed.set_field_at(
-					1,
-					name = f"{label['maybe']['emoji']} {label['maybe']['name']}",
-					value = "\n".join(maybes),
-					inline = True,
-				)
-				embed.set_field_at(
-					2,
-					name = f"{label['decline']['emoji']} {label['decline']['name']}",
-					value = "\n".join(declines),
-					inline = True,
-				)
+			embed, action = self.build_embed_fields(message.embeds[0], member, "remove", payload.emoji)
+			print(f"remove action: {action}")
+			if action == "update":
 				await message.edit(
 					embed = embed,
 				)
