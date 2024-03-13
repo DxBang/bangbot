@@ -14,6 +14,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from bang.dest import Dest
+import base64
 import traceback
 
 class ACCRace(commands.Cog, name="ACC Dedicated Server"):
@@ -1008,22 +1009,30 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						'width': 5,
 					}
 				)
-				"""
-				if config['logo']['source']:
-					fig.add_layout_image(
-						dict(
-							source = config['logo']['source'],
-							xref = "paper",
-							yref = "paper",
-							x = 1,
-							y = 1,
-							sizex = 0.2,
-							sizey = 0.2,
-							xanchor = "right",
-							yanchor = "bottom",
+
+				if config['logo']['source'] != "" and config['logo']['source'] is not None:
+					logo = Dest.file(config['logo']['source'])
+					if Dest.exists(logo):
+						print(f"logo: {logo}")
+						# get mime type
+						mime = Dest.mime(logo)
+						with open(logo, "rb") as f:
+							logo = base64.b64encode(f.read()).decode()
+						fig.add_layout_image(
+							dict(
+								source = f"data:{mime};base64,{logo}",
+								xref = "paper",
+								yref = "paper",
+								x = config['logo']['x'],
+								y = config['logo']['y'],
+								sizex = config['logo']['sizex'],
+								sizey = config['logo']['sizey'],
+								xanchor = config['logo']['xanchor'],
+								yanchor = config['logo']['yanchor'],
+								opacity = config['logo']['opacity'],
+								layer = "below",
+							)
 						)
-					)
-				"""
 				# save the figure as png
 				fig.write_image(
 					Dest.join(temp, pngFile)

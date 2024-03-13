@@ -18,8 +18,8 @@ class Dest:
 	@staticmethod
 	def filename(destination:str) -> str:
 		try:
-			dir, base = os.path.split(destination)
-			name, ext = os.path.splitext(base)
+			_, base = os.path.split(destination)
+			name, _ = os.path.splitext(base)
 			return name
 		except Exception as e:
 			raise e
@@ -27,7 +27,7 @@ class Dest:
 	@staticmethod
 	def base(destination:str) -> str:
 		try:
-			dir, base = os.path.split(destination)
+			_, base = os.path.split(destination)
 			return base
 		except Exception as e:
 			raise e
@@ -35,8 +35,8 @@ class Dest:
 	@staticmethod
 	def extension(destination:str) -> str:
 		try:
-			dir, base = os.path.split(destination)
-			name, ext = os.path.splitext(base)
+			_, base = os.path.split(destination)
+			_, ext = os.path.splitext(base)
 			return ext
 		except Exception as e:
 			raise e
@@ -44,7 +44,7 @@ class Dest:
 	@staticmethod
 	def dir(destination:str) -> str:
 		try:
-			dir, base = os.path.split(destination)
+			dir, _ = os.path.split(destination)
 			return dir
 		except Exception as e:
 			raise e
@@ -160,12 +160,64 @@ class Dest:
 			raise e
 
 	@staticmethod
+	def prefix(file:str, prefix:str) -> str:
+		try:
+			dir, base = os.path.split(file)
+			name, ext = os.path.splitext(base)
+			return os.path.join(
+				dir,
+				f"{prefix}{name}{ext}"
+			)
+		except Exception as e:
+			raise e
+
+	@staticmethod
+	def suffix(file:str, suffix:str) -> str:
+		try:
+			dir, base = os.path.split(file)
+			name, ext = os.path.splitext(base)
+			return os.path.join(
+				dir,
+				f"{name}{suffix}{ext}"
+			)
+		except Exception as e:
+			raise e
+
+	@staticmethod
 	def file(file:str) -> str:
 		try:
 			return os.path.join(
 				os.getcwd(),
 				file
 			)
+		except Exception as e:
+			raise e
+
+	@staticmethod
+	def mime(file:str) -> str:
+		try:
+			_, ext = os.path.splitext(file)
+			return {
+				".txt": "text/plain",
+				".html": "text/html",
+				".css": "text/css",
+				".js": "text/javascript",
+				".json": "application/json",
+				".png": "image/png",
+				".jpg": "image/jpg",
+				".jpeg": "image/jpg",
+				".gif": "image/gif",
+				".mp3": "audio/mpeg",
+				".mp4": "video/mp4",
+				".ogg": "audio/ogg",
+				".ogv": "video/ogg",
+				".webm": "video/webm",
+				".pdf": "application/pdf",
+				".zip": "application/zip",
+				".tar": "application/x-tar",
+				".gz": "application/gzip",
+				".7z": "application/x-7z-compressed",
+			}.get(ext, "application/octet-stream")
 		except Exception as e:
 			raise e
 
@@ -219,30 +271,6 @@ class Dest:
 		try:
 			with open(file, "a+") as f:
 				f.write(content)
-		except Exception as e:
-			raise e
-
-	@staticmethod
-	def prefix(file:str, prefix:str) -> str:
-		try:
-			dir, base = os.path.split(file)
-			name, ext = os.path.splitext(base)
-			return os.path.join(
-				dir,
-				f"{prefix}{name}{ext}"
-			)
-		except Exception as e:
-			raise e
-
-	@staticmethod
-	def suffix(file:str, suffix:str) -> str:
-		try:
-			dir, base = os.path.split(file)
-			name, ext = os.path.splitext(base)
-			return os.path.join(
-				dir,
-				f"{name}{suffix}{ext}"
-			)
 		except Exception as e:
 			raise e
 

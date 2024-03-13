@@ -49,9 +49,14 @@
 			"min_height": 1080,
 			"lap_spacing": 50,
 			"logo": {
-				"source": "https://bang.systems/images/logo/bangsystems-logo-v2.png",
-				"width": 200,
-				"height": 200
+				"source": "image/bangsystems.png",
+				"x": 1,
+				"y": 0.5,
+				"sizex": 1,
+				"sizey": 1,
+				"xanchor": "right",
+				"yanchor": "middle",
+				"opacity": 0.1
 			}
 		}
 	},
