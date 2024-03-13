@@ -991,7 +991,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				)
 				width = max(config['lap_spacing'] * result['session']['laps'] + 400, config['min_width'])
 				height = config['min_height']
-				ytickvals = [fastest_laptime_ms, fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 4, fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 2, fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 4 * 3, slowest_laptime_ms]
+				ytickvals = [fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 10 * i for i in range(11)]
 				fig.update_layout(
 					xaxis = dict(
 						tickmode = 'linear',
