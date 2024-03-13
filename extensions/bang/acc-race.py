@@ -991,18 +991,19 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				)
 				width = max(config['lap_spacing'] * result['session']['laps'] + 400, config['min_width'])
 				height = config['min_height']
+				ytickvals = [fastest_laptime_ms, fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 4, fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 2, fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 4 * 3, slowest_laptime_ms]
 				fig.update_layout(
 					xaxis = dict(
 						tickmode = 'linear',
 					),
+					yaxis = dict(
+						title = "Laptime",
+						tickmode = 'array',
+						tickvals = ytickvals,
+						ticktext = [self.convert_time(tickval) for tickval in ytickvals],
+					),
 					width = width,
 					height = height,
-				)
-				fig.update_yaxes(
-					tickvals = df['laptime_ms'],
-					ticktext = df['laptime'],
-					#range = [fastest_laptime_ms, slowest_average_laptime_ms],
-					title = "Laptime"
 				)
 				fig.update_traces(
 					line = {
