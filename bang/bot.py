@@ -527,7 +527,7 @@ class Bang(commands.Bot):
 				elif message.channel.type == discord.ChannelType.text:
 					embed.add_field(
 						name = "Channel",
-						value = message.channel.mention,
+						value = message.jump_url,
 						inline = True,
 					)
 				embed.add_field(
