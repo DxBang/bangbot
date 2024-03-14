@@ -13,10 +13,12 @@
 	},
 	"extensions": [
 		"bang.acc-race",
+		"bang.graph",
 		"bang.event",
 		"bang.systems",
 		"bang.driver",
 		"bang.help",
+		"!bang.poll",
 		"!bang.gaming",
 		"!bang.test",
 		"!bang.welcome"

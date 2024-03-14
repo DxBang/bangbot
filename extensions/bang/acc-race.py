@@ -2,19 +2,16 @@
 Login to ACC Dedicated Server via FTP and get the race results.
 """
 import ftplib
-import plotly.express as px
-import pandas as pd
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 import re
-import discord
 #from PIL import Image, ImageDraw, ImageFont
 from discord.ext import commands
 #from discord import app_commands
 from bang.dest import Dest
-import base64
+from bang.acc import ACC
 import traceback
 
-class ACCRace(commands.Cog, name="ACC Dedicated Server"):
+class ACCRace(commands.Cog, name="Race Results"):
 	__slots__ = (
 		"bot",
 		"ftp",
@@ -25,195 +22,6 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			self.ftp = ftplib.FTP()
 		except Exception as e:
 			raise e
-
-	def fullTrackName(self, short:str) -> str:
-		return {
-			"barcelona": "Circuit de Barcelona-Catalunya",
-			"barcelona": "Circuit de Barcelona-Catalunya",
-			"brands_hatch": "Brands Hatch",
-			"cota": "Circuit of the Americas",
-			"donington": "Donington Park",
-			"hungaroring": "Hungaroring",
-			"imola": "Autodromo Internazionale Enzo e Dino Ferrari",
-			"indianapolis": "Indianapolis Motor Speedway",
-			"kyalami": "Kyalami Grand Prix Circuit",
-			"laguna_seca": "WeatherTech Raceway Laguna Seca",
-			"misano": "Misano World Circuit",
-			"monza": "Autodromo Nazionale Monza",
-			"mount_panorama": "Mount Panorama Circuit",
-			"nurburgring": "Nürburgring",
-			"oulton_park": "Oulton Park",
-			"paul_ricard": "Circuit Paul Ricard",
-			"silverstone": "Silverstone Circuit",
-			"snetterton": "Snetterton Circuit",
-			"spa": "Circuit de Spa-Francorchamps",
-			"suzuka": "Suzuka International Racing Course",
-			"valencia": "Circuit Ricardo Tormo",
-			"watkins_glen": "Watkins Glen International",
-			"zandvoort": "Circuit Zandvoort",
-			"zolder": "Circuit Zolder",
-			"monza_2019": "Autodromo Nazionale Monza '19",
-			"brands_hatch_2019": "Brands Hatch '19",
-			"spa_2019": "Circuit de Spa-Francorchamps '19",
-			"misano_2019": "Misano World Circuit '19",
-			"paul_ricard_2019": "Circuit Paul Ricard '19",
-			"zolder_2019": "Circuit Zolder '19",
-			"zandvoort_2019": "Circuit Zandvoort '19",
-			"silverstone_2019": "Silverstone Circuit '19",
-			"hungaroring_2019": "Hungaroring '19",
-			"nurburgring_2019": "Nürburgring '19",
-			"barcelona_2019": "Circuit de Barcelona-Catalunya '19",
-			"kyalami_2019": "Kyalami Grand Prix Circuit '19",
-			"mount_panorama_2019": "Mount Panorama Circuit '19",
-			"suzuka_2019": "Suzuka International Racing Course '19",
-			"laguna_seca_2019": "WeatherTech Raceway Laguna Seca '19",
-			"oulton_park_2019": "Oulton Park '19",
-			"snetterton_2019": "Snetterton Circuit '19",
-			"donington_2019": "Donington Park '19",
-			"monza_2020": "Autodromo Nazionale Monza '20",
-			"brands_hatch_2020": "Brands Hatch '20",
-			"spa_2020": "Circuit de Spa-Francorchamps '20",
-			"misano_2020": "Misano World Circuit '20",
-			"paul_ricard_2020": "Circuit Paul Ricard '20",
-			"zolder_2020": "Circuit Zolder '20",
-			"zandvoort_2020": "Circuit Zandvoort '20",
-			"silverstone_2020": "Silverstone Circuit '20",
-			"hungaroring_2020": "Hungaroring '20",
-			"nurburgring_2020": "Nürburgring '20",
-			"barcelona_2020": "Circuit de Barcelona-Catalunya '20",
-			"kyalami_2020": "Kyalami Grand Prix Circuit '20",
-			"mount_panorama_2020": "Mount Panorama Circuit '20",
-			"suzuka_2020": "Suzuka International Racing Course '20",
-			"laguna_seca_2020": "WeatherTech Raceway Laguna Seca '20",
-			"oulton_park_2020": "Oulton Park '20",
-			"snetterton_2020": "Snetterton Circuit '20",
-			"donington_2020": "Donington Park '20",
-			"imola_2020": "Autodromo Internazionale Enzo e Dino Ferrari '20",
-		}.get(short, short)
-
-	def place(self, place:int) -> str:
-		return {
-			1: "🥇",
-			2: "🥈",
-			3: "🥉",
-			4: "4️⃣",
-			5: "5️⃣",
-			6: "6️⃣",
-			7: "7️⃣",
-			8: "8️⃣",
-			9: "9️⃣",
-			10: "🔟",
-			11: "⓫",
-			12: "⓬",
-			13: "⓭",
-			14: "⓮",
-			15: "⓯",
-			16: "⓰",
-			17: "⓱",
-			18: "⓲",
-			19: "⓳",
-			20: "⓴",
-			21: "㉑",
-			22: "㉒",
-			23: "㉓",
-			24: "㉔",
-			25: "㉕",
-			26: "㉖",
-			27: "㉗",
-			28: "㉘",
-			29: "㉙",
-			30: "㉚",
-			31: "㉛",
-			32: "㉜",
-			33: "㉝",
-			34: "㉞",
-			35: "㉟",
-			36: "㊱",
-			37: "㊲",
-			38: "㊳",
-			39: "㊴",
-			40: "㊵",
-			41: "㊶",
-			42: "㊷",
-			43: "㊸",
-			44: "㊹",
-			45: "㊺",
-			46: "㊻",
-			47: "㊼",
-			48: "㊽",
-			49: "㊾",
-			50: "㊿",
-		}.get(place, f"{place}.")
-
-	def car(self, car:int) -> dict:
-		return {
-			0: ["Porsche 991 GT3 R", 2018, "GT3"],
-			1: ["Mercedes-AMG GT3", 2015, "GT3"],
-			2: ["Ferrari 488 GT3", 2018, "GT3"],
-			3: ["Audi R8 LMS", 2015, "GT3"],
-			4: ["Lamborghini Huracán GT3", 2015, "GT3"],
-			5: ["McLaren 650S GT3", 2015, "GT3"],
-			6: ["Nissan GT-R Nismo GT3", 2018, "GT3"],
-			7: ["BMW M6 GT3", 2017, "GT3"],
-			8: ["Bentley Continental GT3", 2018, "GT3"],
-			9: ["Porsche 991 II GT3 Cup", 2017, "GTC"],
-			10: ["Nissan GT-R Nismo GT3", 2015, "GT3"],
-			11: ["Bentley Continental GT3", 2015, "GT3"],
-			12: ["AMR V12 Vantage GT3", 2013, "GT3"],
-			13: ["Reiter Engineering R-EX GT3", 2017, "GT3"],
-			14: ["Emil Frey Jaguar G3", 2012, "GT3"],
-			15: ["Lexus RC F GT3", 2016, "GT3"],
-			16: ["Lamborghini Huracán GT3 Evo", 2019, "GT3"],
-			17: ["Honda NSX GT3", 2017, "GT3"],
-			18: ["Lamborghini Huracán SuperTrofeo", 2015, "GTC"],
-			19: ["Audi R8 LMS Evo", 2019, "GT3"],
-			20: ["AMR V8 Vantage", 2019, "GT3"],
-			21: ["Honda NSX GT3 Evo", 2019, "GT3"],
-			22: ["McLaren 720S GT3", 2019, "GT3"],
-			23: ["Porsche 911 II GT3 R", 2019, "GT3"],
-			24: ["Ferrari 488 GT3 Evo", 2020, "GT3"],
-			25: ["Mercedes-AMG GT3", 2020, "GT3"],
-			26: ["BMW M4 GT3", 2022, "GT3"],
-			27: ["Porsche 992 GT3 Cup", 2022, "GTC"],
-			28: ["BMW M2 Club Sport Racing", 2022, "TCX"],
-			29: ["Lamborghini Huracán SuperTrofeo EVO2", 2022, "GTC"],
-			30: ["Ferrari 488 Challenge Evo", 2022, "GTC"],
-			31: ["Audi R8 LMS GT3 Evo 2", 2022, "GT3"],
-			32: ["Ferrari 296 GT3", 2023, "GT3"],
-			33: ["Lamborghini Huracan GT3 Evo 2", 2023, "GT3"],
-			34: ["Porsche 992 GT3 R", 2023, "GT3"],
-			35: ["McLaren 720S GT3 Evo", 2023, "GT3"],
-			50: ["Alpine A110 GT4", 2018, "GT4"],
-			51: ["Aston Martin Vantage GT4", 2018, "GT4"],
-			52: ["Audi R8 LMS GT4", 2018, "GT4"],
-			53: ["BMW M4 GT4", 2018, "GT4"],
-			55: ["Chevrolet Camaro GT4", 2017, "GT4"],
-			56: ["Ginetta G55 GT4", 2012, "GT4"],
-			57: ["KTM X-Bow GT4", 2016, "GT4"],
-			58: ["Maserati MC GT4", 2016, "GT4"],
-			59: ["McLaren 570S GT4", 2016, "GT4"],
-			60: ["Mercedes AMG GT4", 2016, "GT4"],
-			61: ["Porsche 718 Cayman GT4 Clubsport", 2019, "GT4"],
-		}.get(car, [f"Unknown Car #{car}", 0, "Unknown"])
-
-	def convert_time(self, ms:int) -> str:
-		if ms >= 31536000000:
-			return str(datetime.utcfromtimestamp(ms / 1000).strftime("%Yy %mn %dd %H:%M:%S.%f")[:-3])
-		if ms >= 86400000:
-			return str(datetime.utcfromtimestamp(ms / 1000).strftime("%dd %H:%M:%S.%f")[:-3])
-		if ms >= 3600000:
-			return str(datetime.utcfromtimestamp(ms / 1000).strftime("%H.%M:%S.%f")[:-3])
-		if ms >= 60000:
-			return str(datetime.utcfromtimestamp(ms / 1000).strftime("%M:%S.%f")[:-3])
-		return str(datetime.utcfromtimestamp(ms / 1000).strftime("%S.%f")[:-3])
-
-	def driverName(self, driver:dict) -> str:
-		if driver["firstName"] != "" and driver["lastName"] != "":
-			return f"**{driver['firstName']} {driver['lastName']}**"
-		elif driver["lastName"] != "":
-			return f"**{driver['lastName']}**"
-		else:
-			return f"**{driver['shortName']}**"
 
 	def get_results(self, config, pattern:str, latest:bool = False) -> list | None:
 		try:
@@ -429,7 +237,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			)
 			if data is None:
 				raise ValueError("Error loading result.")
-			track = self.fullTrackName(data["track"])
+			track = ACC.fullTrackName(data["track"])
 			if len(data["laps"]) == 0:
 				embed = self.bot.embed(
 					ctx = ctx,
@@ -446,7 +254,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 			embed = self.bot.embed(
 				ctx = ctx,
 				title = f"{data['server']} · {date.strftime('%d %B %Y')}   ***` {data['typeName']} `***",
-				description = f"**{track}** · **{data['session']['laps']} laps** in **{self.convert_time(data['session']['time'])}**{' · ( 🌧️ )' if data['wet'] == 1 else ''}",
+				description = f"**{track}** · **{data['session']['laps']} laps** in **{ACC.convert_time(data['session']['time'])}**{' · ( 🌧️ )' if data['wet'] == 1 else ''}",
 				bot = True,
 			)
 			place = 1
@@ -458,7 +266,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					drivers = []
 					for driver in car["drivers"].values():
 						drivers.append(
-							self.driverName(driver)
+							ACC.driverName(driver)
 						)
 						if len(driver["penalties"]):
 							driver_penalties.append(
@@ -483,15 +291,15 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					if place == 1:
 						leader = position
 						embed.add_field(
-							name = f"{self.place(place)} #{car['number']} {self.car(car['car'])[0]} {car['team']}",
-							value = f"{drivers}   {self.convert_time(position['time'])}",
+							name = f"{ACC.place(place)} #{car['number']} {ACC.car(car['car'])[0]} {car['team']}",
+							value = f"{drivers}   {ACC.convert_time(position['time'])}",
 							inline = inline,
 						)
 					else:
 						if position["laps"] < leader["laps"]:
 							delta = leader["laps"] - position["laps"]
 							embed.add_field(
-								name = f"{self.place(place)} #{car['number']} {self.car(car['car'])[0]}",
+								name = f"{ACC.place(place)} #{car['number']} {ACC.car(car['car'])[0]}",
 								#value = f"{drivers} - {self.convert_time(position['time'])} (+{delta} laps)",
 								value = f"{drivers}   +{delta} lap{delta > 1 and 's' or ''}",
 								inline = inline,
@@ -499,8 +307,8 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						else:
 							delta = position["time"] - leader["time"]
 							embed.add_field(
-								name = f"{self.place(place)} #{car['number']} {self.car(car['car'])[0]}",
-								value = f"{drivers} · {self.convert_time(position['time'])} · (+{self.convert_time(delta)})",
+								name = f"{ACC.place(place)} #{car['number']} {ACC.car(car['car'])[0]}",
+								value = f"{drivers} · {ACC.convert_time(position['time'])} · (+{ACC.convert_time(delta)})",
 								inline = inline,
 							)
 					place += 1
@@ -523,26 +331,26 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 							best_lap = driver["best"]["lap"]
 							fastestDriver = driver
 						drivers.append(
-							self.driverName(driver)
+							ACC.driverName(driver)
 						)
 					drivers = ", ".join(drivers)
 					if car["laps"] == 0:
 						best_time_str = "N/A"
 					else:
-						best_time_str = self.convert_time(best_time)
+						best_time_str = ACC.convert_time(best_time)
 					embed.add_field(
-						name = f"{self.place(place)} #{car['number']} {self.car(car['car'])[0]} {car['team']}",
+						name = f"{ACC.place(place)} #{car['number']} {ACC.car(car['car'])[0]} {car['team']}",
 						value = f"{drivers} · {best_time_str} on lap {best_lap} · ({position['laps']} lap{position['laps'] > 1 and 's' or ''})",
 						inline = False,
 					)
 					place += 1
 			# show fastest lap
 
-			fastestDriver = self.driverName(data['cars'][data['fastest']['car']]['drivers'][data['fastest']['driver']])
+			fastestDriver = ACC.driverName(data['cars'][data['fastest']['car']]['drivers'][data['fastest']['driver']])
 			embed.add_field(
 				name = "Fastest Lap",
 				value = f"**🛞 #{data['cars'][data['fastest']['car']]['number']}** {fastestDriver}"\
-						f" · {self.convert_time(data['fastest']['time'])} on lap {data['fastest']['lap']}",
+						f" · {ACC.convert_time(data['fastest']['time'])} on lap {data['fastest']['lap']}",
 				inline = False,
 			)
 			# show penalties
@@ -560,7 +368,7 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 							continue
 						cleared = f"Cleared on lap {penalty['cleared']}" if penalty["cleared"] >= penalty["violated"] else "**Not Cleared**"
 						embed.add_field(
-							name = f"⚠️ #{pen['car']['number']} {self.car(pen['car']['car'])[0]} · {self.driverName(pen['driver'])}",
+							name = f"⚠️ #{pen['car']['number']} {ACC.car(pen['car']['car'])[0]} · {ACC.driverName(pen['driver'])}",
 							value = f"Lap {penalty['violated']} · {penalty['reason']} · {penalty['penalty']} · {cleared}",
 							inline = False,
 						)
@@ -586,25 +394,32 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 					raise ValueError("Session must be one of **FP**, **Q**, **R**.")
 				if date is None or date == "" or date.lower() == "latest":
 					print("latest")
-					date = self.parse_date(date)
+					date = ACC.parse_date(date)
 					date_str = "latest"
-					time = self.parse_time(time)
+					time = ACC.parse_time(time)
 					time_str = "latest"
 					latest = True
+				elif date == "*":
+					print("list")
+					date = r"\d{6}"
+					date_str = "list"
+					time = r"\d{6}"
+					time_str = "list"
+					latest = False
 				else:
-					print("not latest")
-					date = self.parse_date(date)
+					print(f"not latest")
+					date = ACC.parse_date(date)
 					date_str = datetime.strptime(date, "%y%m%d").strftime("%d %B %Y")
 					if time is None or time == "latest":
 						time = r"\d{6}"
 						time_str = "latest"
 						latest = True
-					if time == '*':
+					elif time == '*':
 						time = r"\d{6}"
 						time_str = "list"
 						latest = False
 					else:
-						time = self.parse_time(time)
+						time = ACC.parse_time(time)
 						time_str = time
 				pattern = f"{date}_{time}_{session}.json"
 				results = self.get_results(config, pattern, latest)
@@ -635,17 +450,29 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 						embed = embed
 					)
 				if len(results) > 1:
-					times = []
+					dates = {}
 					for result in results:
-						_, time, _ = Dest.filename(result).split("_")
-						times.append(
-							time
-						)
+						date, time, _ = Dest.filename(result).split("_")
+						# build the dates dictionary and add the time
+						if date not in dates:
+							dates[date] = []
+						dates[date].append(time)
 					embed = self.bot.embed(
 						ctx = ctx,
 						title = f"Multiple results found for **{session}** on **{date_str}** at **{time_str}**.",
-						description = f"Please select one of the following times:\n\n{', '.join(times)}",
+						description = f"Please select one of the following date(s) & times",
 						bot = True,
+					)
+					if len(dates) > 10:
+						dates = dict(list(dates.items())[:10])
+					for date, times in dates.items():
+						embed.add_field(
+							name = f"{date}",
+							value = f"{' '.join(times)}",
+							inline = False,
+						)
+					embed.set_footer(
+						text = f"Powered by {self.bot.__POWERED_BY__}",
 					)
 					return await ctx.send(
 						embed = embed
@@ -783,334 +610,6 @@ class ACCRace(commands.Cog, name="ACC Dedicated Server"):
 				ctx = ctx,
 			)
 		except Exception as e:
-			await self.bot.error(
-				e,
-				ctx = ctx,
-			)
-
-	def parse_date(self, date:str, throw:bool = True) -> str | None:
-		if date is None or date.lower() == "latest":
-			return "\d{6}"
-		if date.lower() == "today":
-			return datetime.now(timezone.utc).strftime("%y%m%d")
-		if date.lower() == "yesterday":
-			return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%y%m%d")
-		if re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-			return datetime.strptime(date, "%y%m%d").strftime("%y%m%d")
-		if re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-			return datetime.strptime(date, "%Y%m%d").strftime("%y%m%d")
-		if re.match(r"^[0-9]{4}-[0-1]?[0-9]-[0-3]?[0-9]$", date):
-			return datetime.strptime(date, "%Y-%m-%d").strftime("%y%m%d")
-		if re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{2}$", date):
-			return datetime.strptime(date, "%d/%m/%y").strftime("%y%m%d")
-		if re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
-			return datetime.strptime(date, "%d/%m/%Y").strftime("%y%m%d")
-		if throw:
-			raise ValueError("Invalid date format. Try **YYMMDD**, **YYYYMMDD**, **YYYY-MM-DD**, or **DD/MM/YY**.")
-
-	def parse_time(self, time:str, throw:bool = True) -> str | None:
-		if time is None or time.lower() == "latest":
-			return "\d{6}"
-
-		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
-			return re.sub(r'[\.:]', '', time)
-		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9]", time):
-			return re.sub(r'[\.:]', '', time) + r'\d{2}'
-		if not re.match(r"[0-2][0-9][0-5][0-9]", time):
-			if throw:
-				raise ValueError("Invalid time format. Try **HHMM**.")
-
-	def parse_graph_input(self, input:str = None) -> tuple[str, str, str, list[int]|None, int|None]:
-		# check if input is empty
-		if input is None:
-			input = "latest"
-		# split input per space
-		inputs = input.split(" ")
-		# check if input is a date
-		date:str = None
-		time:str = None
-		session:str = "(R|Q|FP)"
-		top:list[int] = None
-		number:int|None = None
-		for input in inputs:
-			if input.lower() == "latest":
-				date = "\d{6}"
-				time = "\d{6}"
-				session = '(R|Q|FP)'
-			else:
-				# check if input is a date
-				date = self.parse_date(input, False)
-				# check if input is a time
-				time = self.parse_time(input, False)
-				if date is None:
-					date = "\d{6}"
-				if time is None:
-					time = "\d{6}"
-			# check if input has a race type: R, Q, FP
-			if input.lower() in ["r", "q", "fp"]:
-				session = input.upper()
-			if input.startswith("#"):
-				number = int(input.replace("#", ""))
-			if re.match(r"^[0-9]+-[0-9]+$", input):
-				top = input.split("-")
-				# convert to int
-				top = [int(top[0]), int(top[1])]
-				if int(top[0]) > int(top[1]):
-					raise ValueError("Invalid range. The first number must be lower than the second.")
-			# check if input is a car number
-		if number is not None:
-			top = None
-		return date, time, session, top, number
-
-	@commands.command(
-		description = "Show a graph of drivers lap times",
-		usage = "graph [input with date and time or latest and maybe type of the race and #car number or 1-10 for top 10]",
-		hidden = False,
-	)
-	@commands.guild_only()
-	@commands.is_owner()
-	@commands.has_permissions(moderate_members=True)
-	async def graph(self, ctx:commands.Context, *, input:str = None) -> None:
-		"""
-		Show a graph of drivers lap times
-		```
-		{ctx.prefix}graph 241231 235959 r
-		{ctx.prefix}graph 241231 235959 q
-		{ctx.prefix}graph 241231 235959 fp
-		{ctx.prefix}graph latest
-		{ctx.prefix}graph latest r 1-10
-		{ctx.prefix}graph latest r #21
-		{ctx.prefix}graph 241231 235959 q 5-10
-		{ctx.prefix}graph 241231 235959 fp #21
-		```
-		"""
-		try:
-			print(f"graph")
-			async with ctx.typing():
-				# check if input is a date
-				config = self.bot.get_config(ctx.guild, "race", "graph")
-				date, time, session, top, number = self.parse_graph_input(input)
-				print(f"\ndate: {date}\ntime: {time}\nsession: {session}\ntop: {top}\nnumber: {number}\n")
-				# get the results from temp result directory
-				temp = self.bot.get_temp("results")
-				regexp = f"^{date}_{time}_{session}\.result\.json$"
-				resultFile = Dest.scan(temp, regexp, 'last')
-				if resultFile is None:
-					raise ValueError("No results found. Run the race, qualify or practice command first.")
-				# get date and time and session from filename: 240309_220433_R.json.result.json
-				filename = Dest.filename(resultFile)
-				print(f"filename: {filename}")
-				date, time, session = filename.split(".")[0].split("_")
-				print(f"date: {date}\ntime: {time}\nsession: {session}")
-				_top = f"{top[0]}-{top[1]}" if top is not None else "all"
-				_number = f"{number}" if number is not None else "all"
-				jsonFile = f"{date}_{time}_{session}_{_top}_{_number}.json"
-				print(f"jsonFile: {jsonFile}")
-				pngFile = f"{date}_{time}_{session}_{_top}_{_number}.png"
-				print(f"pngFile: {pngFile}")
-				# check if png file exists
-
-				if Dest.exists(Dest.join(temp, pngFile)):
-					await ctx.send(
-						file=discord.File(
-							Dest.join(temp, pngFile)
-						)
-					)
-					return
-
-				# load the result sa json
-				result = Dest.json.load(resultFile)
-				if len(result['laps']) == 0:
-					raise ValueError(f"No laps found, no data to graph. Maybe apply a race type as I found an empty {result['typeName']} session.")
-				#print(f"data: {data}")
-				data = []
-				fastest_laptime_ms = 999999999
-				slowest_laptime_ms = 0
-				#max_laps = 0
-				slowest_laptimes = {}
-				fastest_laptimes = {}
-				position = 1
-				for car in result['cars'].values():
-					for driver in car['drivers'].values():
-						if number is not None and car['number'] != number:
-							continue
-						if top is not None and position > top[1]:
-							continue
-						if top is not None and position < top[0]:
-							continue
-						lap = 0
-						for laptime_ms in driver['laps']:
-							if lap == 0:
-								lap += 1
-								continue
-							laptime = self.convert_time(laptime_ms)
-							if slowest_laptime_ms < laptime_ms:
-								slowest_laptime_ms = laptime_ms
-							if fastest_laptime_ms > laptime_ms:
-								fastest_laptime_ms = laptime_ms
-							data.append({
-								"driver": f"#{car['number']} {driver['lastName']}",
-								"lap": lap,
-								"laps": len(driver['laps']) - 1, # -1 for formation lap
-								"laptime": laptime,
-								"laptime_ms": laptime_ms,
-							})
-							if laptime_ms > slowest_laptimes.get(driver['playerId'], 0):
-								slowest_laptimes[driver['playerId']] = laptime_ms
-							if laptime_ms < fastest_laptimes.get(driver['playerId'], 999999999):
-								fastest_laptimes[driver['playerId']] = laptime_ms
-							lap += 1
-					position += 1
-				# save the figure as json
-				if len(data) == 0:
-					raise ValueError("No data found.")
-				Dest.json.save(
-					Dest.join(temp, jsonFile),
-					data,
-				)
-				df = pd.DataFrame(data)
-				# create a figure and axis
-				fig = px.line(
-					df,
-					x = "lap",
-					y = "laptime_ms",
-					line_shape = "spline",
-					color = "driver",
-					title = f"{result['server']} · {self.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps",
-					labels = {
-						"laptime_ms": "Laptime",
-						"lap": "Laps",
-						"driver": "Drivers",
-					},
-					markers = True,
-					template = config['template'],
-					range_x = [1, result['session']['laps']],
-				)
-				width = max(config['lap_spacing'] * result['session']['laps'] + 400, config['min_width'])
-				height = config['min_height']
-				ytickvals = [fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 10 * i for i in range(11)]
-				fig.update_layout(
-					xaxis = dict(
-						tickmode = 'linear',
-						title = dict(
-							font = dict(
-								size = config['label']['size'],
-							)
-						)
-					),
-					yaxis = dict(
-						tickmode = 'array',
-						tickvals = ytickvals,
-						ticktext = [self.convert_time(tickval) for tickval in ytickvals],
-						title = dict(
-							font = dict(
-								size = config['label']['size'],
-							)
-						),
-					),
-					width = width,
-					height = height,
-					title = dict(
-						font = dict(
-							size = config['title']['size'],
-						)
-					),
-					font = dict(
-						size = config['font']['size'],
-					),
-				)
-				fig.update_traces(
-					line = {
-						'width': 5,
-					}
-				)
-				slowest_laptime_position = df[df['laptime_ms'] == slowest_laptime_ms].index[0]
-				fastest_laptime_position = df[df['laptime_ms'] == fastest_laptime_ms].index[0]
-				fig.add_annotation(
-					x=df['lap'][slowest_laptime_position],
-					y=df['laptime_ms'][slowest_laptime_position],
-					text=f"{self.convert_time(slowest_laptime_ms)}",
-					showarrow=True,
-					arrowhead=1,
-					arrowwidth=3,
-					arrowcolor=config['annotation']['slowest']['color'],
-					font=dict(
-						color=config['annotation']['slowest']['color'],
-						size=config['annotation']['slowest']['size']
-					),
-					ax=-20,
-					ay=-40,
-				)
-				fig.add_annotation(
-					x=df['lap'][fastest_laptime_position],
-					y=df['laptime_ms'][fastest_laptime_position],
-					text=f"{self.convert_time(fastest_laptime_ms)}",
-					showarrow=True,
-					arrowhead=1,
-					arrowwidth=3,
-					arrowcolor=config['annotation']['fastest']['color'],
-					font=dict(
-						color=config['annotation']['fastest']['color'],
-						size=config['annotation']['fastest']['size']
-					),
-					ax=20,
-					ay=40,
-				)
-				average_laptime_ms = sum([lap['laptime_ms'] for lap in data]) / len(data)
-				# create a highlight for average laptime
-				fig.add_shape(
-					type="line",
-					x0=1,
-					y0=average_laptime_ms,
-					x1=result['session']['laps'],
-					y1=average_laptime_ms,
-					line=dict(
-						color="rgb(192,192,192)",
-						width=2,
-						dash="dot",
-					),
-				)
-				if config['logo']['source'] != "" and config['logo']['source'] is not None:
-					logo = Dest.file(config['logo']['source'])
-					if Dest.exists(logo):
-						print(f"logo: {logo}")
-						# get mime type
-						mime = Dest.mime(logo)
-						with open(logo, "rb") as f:
-							logo = base64.b64encode(f.read()).decode()
-						fig.add_layout_image(
-							dict(
-								source = f"data:{mime};base64,{logo}",
-								xref = "paper",
-								yref = "paper",
-								x = config['logo']['x'],
-								y = config['logo']['y'],
-								sizex = config['logo']['sizex'],
-								sizey = config['logo']['sizey'],
-								xanchor = config['logo']['xanchor'],
-								yanchor = config['logo']['yanchor'],
-								opacity = config['logo']['opacity'],
-								layer = "below",
-							)
-						)
-				# save the figure as png
-				fig.write_image(
-					Dest.join(temp, pngFile)
-				)
-				# send the png
-				await ctx.send(
-					file=discord.File(
-						Dest.join(temp, pngFile)
-					)
-				)
-		except ValueError as e:
-			traceback.print_exc()
-			await self.bot.warn(
-				e,
-				ctx = ctx,
-			)
-		except Exception as e:
-			traceback.print_exc()
 			await self.bot.error(
 				e,
 				ctx = ctx,
