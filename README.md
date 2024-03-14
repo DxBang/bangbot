@@ -1,5 +1,14 @@
 # Bang Bot
- Discord Bot
+_Discord Race Bot for Assetto Corsa Competizione_
+![Race Bot](image/racebot-banner.png?raw=true "Race Bot")
+
+
+![Danish eMotorsport Series](image/dems2024-logo-wht.png?raw=true "Danish eMotorsport Series")
+
+
+
+
+
 
 ## Installation
 1. Install Python 3.10 or higher
@@ -40,6 +49,10 @@ Enable the extensions by adding the file name to the `extensions` list in the `c
 }
 ```
 
+### Guild Configuration
+Copy the `_default_.json` from `guild` and rename it to the guild id of the server. Modify the settings as you please.
+
+
 ## Usage
 Run the bot using (on Linux):
 ```shell
@@ -59,7 +72,10 @@ deactivate
 Besides the basic (ping, welcome message etc.) features, the bot has the following features:
 
 ### Assetto Corsa Competizione @ G-Portal or Nitrado.
-`/result [date]` - Get the server status of the Assetto Corsa Competizione server hosted by G-Portal or Nitrado and generate the result as embed.
+`/practice [date]` - Get the practice results with the lap times and laps of the session.
+`/qualify [date]` - Get the qualify results with the lap times and laps of the session.
+`/race [date]` - Get the race results of the session and the final standings as well as the fastest lap and penalties.
+
 
 ### Event with Signup
 ```txt
