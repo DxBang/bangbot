@@ -1,11 +1,7 @@
 # Bang Bot
 _Discord Race Bot for Assetto Corsa Competizione_
-![Race Bot](image/racebot-banner.png?raw=true "Race Bot")
-
 
 ![Danish eMotorsport Series](image/dems2024-logo-wht.png?raw=true "Danish eMotorsport Series")
-
-
 
 
 
