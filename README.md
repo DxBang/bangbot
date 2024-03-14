@@ -34,13 +34,15 @@ The bot is configured using the `config.json` file. The file is structured as fo
 }
 ```
 
-Enable the extensions by adding the file name to the `extensions` list in the `config.json` file. _(Hint: added ! before the extension name to indicate that it is disabled without removing it from the condig.)_
+Enable the extensions by adding the file name to the `extensions` list in the `config.json` file. _(Hint: added ! before the extension name to indicate that it is disabled without removing it from the config.)_
 ```json
 {
 	"extensions": [
 		"bang.systems",
 		"bang.acc-race",
-		"bang.event"
+		"bang.event",
+		"bang.help",
+		"!bang.poll"
 	]
 }
 ```
@@ -68,9 +70,9 @@ deactivate
 Besides the basic (ping, welcome message etc.) features, the bot has the following features:
 
 ### Assetto Corsa Competizione @ G-Portal or Nitrado.
-`/practice [date]` - Get the practice results with the lap times and laps of the session.
-`/qualify [date]` - Get the qualify results with the lap times and laps of the session.
-`/race [date]` - Get the race results of the session and the final standings as well as the fastest lap and penalties.
+`/practice [date]` - Get the practice results with the lap times and laps of the session.  
+`/qualify [date]` - Get the qualify results with the lap times and laps of the session.  
+`/race [date]` - Get the race results of the session and the final standings as well as the fastest lap and penalties.  
 
 
 ### Event with Signup

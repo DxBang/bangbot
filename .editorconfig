@@ -7,7 +7,7 @@ indent_style=tab
 indent_size=1
 tab_width=4
 
-[*.{md}]
+[*.md]
 trim_trailing_whitespace=false
 
 [*.{yml,yaml}]
