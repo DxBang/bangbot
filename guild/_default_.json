@@ -3,6 +3,7 @@
 	"nick": "BangBot",
 	"main": 152590075920646145,
 	"use_system_temp": false,
+	"timezone": "Europe/Copenhagen",
 	"sql": {
 		"host": "192.168.0.99",
 		"port": 3306,
@@ -156,6 +157,21 @@
 				"name": "Not Going",
 				"emoji": "❌",
 				"description": "I'm not going to the event."
+			},
+			"date": {
+				"name": "Date",
+				"emoji": "📅",
+				"description": "The date of the event."
+			},
+			"time": {
+				"name": "Time",
+				"emoji": "⏰",
+				"description": "The time of the event."
+			},
+			"countdown": {
+				"name": "Countdown",
+				"emoji": "⏳",
+				"description": "The countdown to the event."
 			}
 		}
 	},

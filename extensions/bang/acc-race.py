@@ -227,16 +227,17 @@ class ACCRace(commands.Cog, name="Race Results"):
 		try:
 			print(f"handle_result: {file}")
 			data = self.load_result(file)
-			# save the result
-			Dest.json.save(
-				Dest.join(
-					self.bot.get_temp('results'),
-					Dest.suffix(file, '.result')
-				),
-				data
-			)
 			if data is None:
 				raise ValueError("Error loading result.")
+			if len(data['laps']) > 0:
+				# save the result
+				Dest.json.save(
+					Dest.join(
+						self.bot.get_temp('results'),
+						Dest.suffix(file, '.result')
+					),
+					data
+				)
 			track = ACC.fullTrackName(data["track"])
 			if len(data["laps"]) == 0:
 				embed = self.bot.embed(
@@ -254,7 +255,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 			embed = self.bot.embed(
 				ctx = ctx,
 				title = f"{data['server']} · {date.strftime('%d %B %Y')}   ***` {data['typeName']} `***",
-				description = f"**{track}** · **{data['session']['laps']} laps** in **{ACC.convert_time(data['session']['time'])}**{' · ( 🌧️ )' if data['wet'] == 1 else ''}",
+				description = f"**{track}** · **{data['session']['laps']} laps** in **{ACC.convert_time(data['session']['time'])}** ({data['session']['time']}){' · ( 🌧️ )' if data['wet'] == 1 else ''}",
 				bot = True,
 			)
 			place = 1
@@ -394,9 +395,9 @@ class ACCRace(commands.Cog, name="Race Results"):
 					raise ValueError("Session must be one of **FP**, **Q**, **R**.")
 				if date is None or date == "" or date.lower() == "latest":
 					print("latest")
-					date = ACC.parse_date(date)
+					date = ACC.parse_date_for_regexp(date)
 					date_str = "latest"
-					time = ACC.parse_time(time)
+					time = ACC.parse_time_for_regexp(time)
 					time_str = "latest"
 					latest = True
 				elif date == "*":
@@ -408,7 +409,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 					latest = False
 				else:
 					print(f"not latest")
-					date = ACC.parse_date(date)
+					date = ACC.parse_date_for_regexp(date)
 					date_str = datetime.strptime(date, "%y%m%d").strftime("%d %B %Y")
 					if time is None or time == "latest":
 						time = r"\d{6}"
@@ -419,7 +420,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 						time_str = "list"
 						latest = False
 					else:
-						time = ACC.parse_time(time)
+						time = ACC.parse_time_for_regexp(time)
 						time_str = time
 				pattern = f"{date}_{time}_{session}.json"
 				results = self.get_results(config, pattern, latest)

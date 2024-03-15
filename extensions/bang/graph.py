@@ -41,9 +41,9 @@ class Graph(commands.Cog, name="Graph"):
 				session = '(R|Q|FP)'
 			else:
 				# check if input is a date
-				date = ACC.parse_date(input, False)
+				date = ACC.parse_date_for_regexp(input, False)
 				# check if input is a time
-				time = ACC.parse_time(input, False)
+				time = ACC.parse_time_for_regexp(input, False)
 				if date is None:
 					date = "\d{6}"
 				if time is None:
@@ -121,7 +121,9 @@ class Graph(commands.Cog, name="Graph"):
 				# load the result sa json
 				result = Dest.json.load(resultFile)
 				if len(result['laps']) == 0:
-					raise ValueError(f"No laps found, no data to graph. Maybe apply a race type as I found an empty {result['typeName']} session.")
+					# delete the result file
+					Dest.remove(resultFile)
+					raise ValueError(f"No laps found, no data to graph...")
 				#print(f"data: {data}")
 				data = []
 				fastest_laptime_ms = 999999999

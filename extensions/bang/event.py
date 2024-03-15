@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import traceback
+from bang.acc import ACC
 
 class Event(commands.Cog, name="Event Management"):
 	__slots__ = (
@@ -29,16 +30,46 @@ class Event(commands.Cog, name="Event Management"):
 		We will be racing at Silverstone next week. Please react to the message to let us know if you are going, maybe, or not going.
 		So sign up @drivers and let us know if you are going to be there.
 		```
+		If you want to use the date and time fields, you can use the following format:
+		```
+		{ctx.prefix}event The next event at Silverstone
+		date: 2024-12-31
+		time: 20:00
+		We will be racing at Silverstone next week. Please react to the message to let us know if you are going, maybe, or not going.....
+		```
+		Note:
+		That when using the date and time fields, those lines will be removed from the description and the date and time will be added to the event message.
+		If you want to display the date and time in the event message, write them twice in the description.
+		---
 		Depending on the configuration, you can mention roles to lock the reactions to that role or have it completely locked to specific role(s).
 		A single image can be attached to the event message, and it can be set to be a thumbnail or the main image in the configuration.
 		"""
 		try:
 			title = ctx.message.content.split("\n", 1)[0].split(" ", 1)[1].strip()
-			description = ctx.message.content.split("\n", 1)[1].strip()
+			description = ctx.message.content.split("\n", 1)[1].strip().split("\n")
+			# find the first line in description which starts with "date:" and "time:" and parse the date and time to epoch, then remove the line from the description
+			date = None
+			time = None
+			epoch = None
+			delete = []
+			for idx, line in enumerate(description):
+				if date is None:
+					if line.lower().startswith("date:"):
+						date = line.split(" ", 1)[1].strip()
+						# remove the line from the description
+						delete.append(idx)
+				if time is None:
+					if line.lower().startswith("time:"):
+						time = line.split(" ", 1)[1].strip()
+						# remove the line from the description
+						delete.append(idx)
+			delete = delete[::-1]
+			for idx in delete:
+				del description[idx]
 			embed = self.bot.embed(
 				ctx = ctx,
 				title = title,
-				description = description,
+				description = "\n".join(description),
 				bot = True,
 			)
 			embed.set_footer(
@@ -55,6 +86,25 @@ class Event(commands.Cog, name="Event Management"):
 				mentions.extend([role.mention for role in ctx.guild.roles if role.id in roles])
 			label = self.bot.get_config(ctx.guild, "label", "event")
 			config = self.bot.get_config(ctx.guild, "event")
+			if date is not None and time is not None:
+				tz = self.bot.get_config(ctx.guild, "timezone")
+				epoch = ACC.dateToEpoch(date, time, tz)
+			if epoch is not None:
+				embed.add_field(
+					name = f"{label['date']['emoji']} {label['date']['name']}",
+					value = f"<t:{epoch}:D>",
+					inline = True,
+				)
+				embed.add_field(
+					name = f"{label['time']['emoji']} {label['time']['name']}",
+					value = f"<t:{epoch}:t>",
+					inline = True,
+				)
+				embed.add_field(
+					name = f"{label['countdown']['emoji']} {label['countdown']['name']}",
+					value = f"<t:{epoch}:R>",
+					inline = True,
+				)
 			embed.add_field(
 				name = f"{label['accept']['emoji']} {label['accept']['name']}",
 				value = "\n",
@@ -109,11 +159,17 @@ class Event(commands.Cog, name="Event Management"):
 		try:
 			print(f"build_embed_fields: {embed}, {member}, {action}, {emoji}")
 			label = self.bot.get_config(member.guild, "label", "event")
-			if label['accept']['emoji'] not in embed.fields[0].name and label['accept']['name'] not in embed.fields[0].name:
+			first = 0
+			# check if the embed has date, time, and countdown fields
+			if label['date']['emoji'] in embed.fields[0].name and label['date']['name'] in embed.fields[0].name and\
+				label['time']['emoji'] in embed.fields[1].name and label['time']['name'] in embed.fields[1].name and\
+				label['countdown']['emoji'] in embed.fields[2].name and label['countdown']['name'] in embed.fields[2].name:
+				first = 3
+			if label['accept']['emoji'] not in embed.fields[0 + first].name and label['accept']['name'] not in embed.fields[0].name:
 				return embed, "ignore"
-			if label['maybe']['emoji'] not in embed.fields[1].name and label['maybe']['name'] not in embed.fields[1].name:
+			if label['maybe']['emoji'] not in embed.fields[1 + first].name and label['maybe']['name'] not in embed.fields[1].name:
 				return embed, "ignore"
-			if label['decline']['emoji'] not in embed.fields[2].name and label['decline']['name'] not in embed.fields[2].name:
+			if label['decline']['emoji'] not in embed.fields[2 + first].name and label['decline']['name'] not in embed.fields[2].name:
 				return embed, "ignore"
 			items_limit = 20
 			column = {
@@ -121,19 +177,20 @@ class Event(commands.Cog, name="Event Management"):
 				"maybe": 1,
 				"decline": 2,
 			}
-			row = 0
+			columns = len(column)
 			accepts = []
 			maybes = []
 			declines = []
-			field_multiplier = 3
 			for idx, field in enumerate(embed.fields):
-				if idx % field_multiplier == column['accept']: # 0
+				if idx < first:
+					continue
+				if idx % columns == column['accept']: # 0
 					if len(field.value.strip()) > 0:
 						accepts.extend(field.value.strip().split("\n"))
-				elif idx % field_multiplier == column['maybe']: # 1
+				elif idx % columns == column['maybe']: # 1
 					if len(field.value.strip()) > 0:
 						maybes.extend(field.value.strip().split("\n"))
-				elif idx % field_multiplier == column['decline']: # 2
+				elif idx % columns == column['decline']: # 2
 					if len(field.value.strip()) > 0:
 						declines.extend(field.value.strip().split("\n"))
 				else:
@@ -192,13 +249,15 @@ class Event(commands.Cog, name="Event Management"):
 			accepts = [accepts[i:i + items_limit] for i in range(0, len(accepts), items_limit)]
 			maybes = [maybes[i:i + items_limit] for i in range(0, len(maybes), items_limit)]
 			declines = [declines[i:i + items_limit] for i in range(0, len(declines), items_limit)]
-			largest = max(len(accepts), len(maybes), len(declines))
-			# create the fields
-			embed.clear_fields()
-			for row in range(largest):
-				accept = accepts[row] if row < len(accepts) else []
-				maybe = maybes[row] if row < len(maybes) else []
-				decline = declines[row] if row < len(declines) else []
+			largest = max(len(accepts), len(maybes), len(declines), 1)
+			# remove old fields
+			for r in range(len(embed.fields)-1, first-1, -1):
+				embed.remove_field(r)
+			# recreate the fields
+			for r in range(largest):
+				accept = accepts[r] if r < len(accepts) else []
+				maybe = maybes[r] if r < len(maybes) else []
+				decline = declines[r] if r < len(declines) else []
 				for col, members in enumerate([accept, maybe, decline]):
 					if col == column['accept']:
 						name = f"{label['accept']['emoji']} {label['accept']['name']}"
@@ -310,6 +369,28 @@ class Event(commands.Cog, name="Event Management"):
 			print(f"error: {e}")
 			raise e
 
+	"""
+	@commands.command(
+		description = "Epoch date.",
+		hidden = True,
+		usage = "epoch <date>",
+	)
+	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
+	async def epoch(self, ctx:commands.Context, date:str, time:str) -> None:
+		"/""Convert a date to epoch."/""
+		try:
+			tz = self.bot.get_config(ctx.guild, "timezone")
+			epoch = ACC.dateToEpoch(date, time, tz)
+			await ctx.send(
+				f"<t:{epoch}:R>",
+			)
+		except Exception as e:
+			await self.bot.error(
+				e,
+				ctx = ctx,
+			)
+	"""
 
 
 async def setup(bot:commands.Bot) -> None:

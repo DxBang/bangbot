@@ -321,6 +321,30 @@ class Bang(commands.Bot):
 
 	def get_config(self, guild:discord.Guild = None, *args) -> list | dict | int | str | bool | None:
 		try:
+			default = self.get_default(*args)
+			if guild is None:
+				return default
+			if guild.id in self.config["guilds"]:
+				# look through the guild's config from the args and merge it with the default config if it exists in the guild's config and the default config
+				config = self.config["guilds"][guild.id]
+				for arg in args:
+					if arg in config:
+						config = config[arg]
+						continue
+					config = None
+					break
+				if config is not None:
+					# merge the default config with the guild's config
+					if isinstance(config, dict) and isinstance(default, dict):
+						default.update(config)
+						return default
+					if isinstance(config, list) and isinstance(default, list):
+						default.extend(config)
+						return default
+					return config
+			return default
+
+			"""
 			found:bool = False
 			if guild is not None and guild.id in self.config["guilds"]:
 				config = self.config["guilds"][guild.id]
@@ -335,6 +359,7 @@ class Bang(commands.Bot):
 			if found:
 				return config
 			return self.get_default(*args)
+			"""
 		except Exception as e:
 			self.debug(e)
 
@@ -365,7 +390,6 @@ class Bang(commands.Bot):
 			return f"{bytes / 1073741824:.2f} GB"
 		except Exception as e:
 			self.debug(e)
-
 
 	def embed(self,
 			ctx:commands.Context,

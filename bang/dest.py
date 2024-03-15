@@ -92,6 +92,10 @@ class Dest:
 			raise e
 
 	@staticmethod
+	def delete(destination:str) -> None:
+		return Dest.remove(destination)
+
+	@staticmethod
 	def rename(source:str, destination:str) -> None:
 		try:
 			os.rename(source, destination)

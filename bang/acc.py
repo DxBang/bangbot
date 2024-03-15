@@ -1,16 +1,23 @@
 from datetime import datetime, timezone, timedelta
 import re
+import pytz
 
 class ACC:
 	@staticmethod
-	def parse_date(date:str = None, throw:bool = True) -> str | None:
+	def parse_date_for_regexp(date:str = None, throw:bool = True) -> str | None:
 		print(f"parse_date: {date} ({type(date)})")
 		if date is None or date.lower() == "latest":
 			return "\d{6}"
+		return ACC.parse_date(date, throw)
+
+	@staticmethod
+	def parse_date(date:str = None, throw:bool = True) -> str | None:
 		if date.lower() == "today":
 			return datetime.now(timezone.utc).strftime("%y%m%d")
 		if date.lower() == "yesterday":
 			return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%y%m%d")
+		if date.lower() == "tomorrow":
+			return (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%y%m%d")
 		if re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
 			return datetime.strptime(date, "%y%m%d").strftime("%y%m%d")
 		if re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
@@ -25,28 +32,41 @@ class ACC:
 			raise ValueError("Invalid date format. Try **YYMMDD**, **YYYYMMDD**, **YYYY-MM-DD**, or **DD/MM/YY**.")
 
 	@staticmethod
-	def parse_time(time:str = None, throw:bool = True) -> str | None:
+	def parse_time_for_regexp(time:str = None, throw:bool = True) -> str | None:
 		print(f"parse_time: {time} ({type(time)}")
-		if time is None or time.lower() == "latest":
+		if time is None or time.lower() == "latest" or time == "*":
 			return "\d{6}"
 		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
 			return re.sub(r'[\.:]', '', time)
 		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9]", time):
 			return re.sub(r'[\.:]', '', time) + r'\d{2}'
-		if not re.match(r"[0-2][0-9][0-5][0-9]", time):
-			if throw:
-				raise ValueError("Invalid time format. Try **HHMM**.")
+		if re.match(r"^[0-2][0-9]", time):
+			return re.sub(r'[\.:]', '', time) + r'\d{4}'
+		return ACC.parse_time(time, throw)
+
+	@staticmethod
+	def parse_time(time:str = None, throw:bool = True) -> str | None:
+		if time.lower() == "now":
+			return datetime.now(timezone.utc).strftime("%H%M%S")
+		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9]", time):
+			return re.sub(r'[\.:]', '', time) + "00"
+		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
+			return re.sub(r'[\.:]', '', time)
+		if re.match(r"[0-2][0-9][0-5][0-9]", time):
+			return time + "00"
+		if throw:
+			raise ValueError("Invalid time format. Try **HHMM**.")
 
 	@staticmethod
 	def convert_time(ms:int) -> str:
 		if ms >= 31536000000:
-			return str(datetime.fromtimestamp(ms / 1000).strftime("%Yy %mn %dd %H:%M:%S.%f")[:-3])
+			return str(datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Yy %mn %dd %H:%M:%S.%f")[:-3])
 		if ms >= 86400000:
-			return str(datetime.fromtimestamp(ms / 1000).strftime("%dd %H:%M:%S.%f")[:-3])
+			return str(datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%dd %H:%M:%S.%f")[:-3])
 		if ms >= 3600000:
-			return str(datetime.fromtimestamp(ms / 1000).strftime("%H.%M:%S.%f")[:-3])
+			return str(datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%H.%M:%S.%f")[:-3])
 		if ms >= 60000:
-			return str(datetime.fromtimestamp(ms / 1000).strftime("%M:%S.%f")[:-3])
+			return str(datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%M:%S.%f")[:-3])
 		return str(datetime.fromtimestamp(ms / 1000).strftime("%S.%f")[:-3])
 
 	@staticmethod
@@ -230,3 +250,18 @@ class ACC:
 			return f"**{driver['lastName']}**"
 		else:
 			return f"**{driver['shortName']}**"
+
+	@staticmethod
+	def dateToEpoch(date:str, time:str, tz:str) -> int:
+		date = ACC.parse_date(date)
+		time = ACC.parse_time(time)
+		tz = pytz.timezone(tz)
+		combined = tz.localize(
+			datetime.strptime(f"{date} {time}", "%y%m%d %H%M%S")
+		)
+		return int(combined.timestamp())
+
+	@staticmethod
+	def epochToDate(epoch:int, tz:str) -> str:
+		return datetime.fromtimestamp(epoch, tz=timezone.tzname(tz)).strftime("%y%m%d %H%M%S")
+
