@@ -104,6 +104,12 @@ class Event(commands.Cog, name="Event Management"):
 					value = f"<t:{epoch}:R>",
 					inline = True,
 				)
+				if config['use_separator']:
+					embed.add_field(
+						name = "\u200b",
+						value = "\n",
+						inline = False,
+					)
 			embed.add_field(
 				name = f"{label['accept']['emoji']} {label['accept']['name']}",
 				value = "\n",
@@ -164,6 +170,8 @@ class Event(commands.Cog, name="Event Management"):
 				label['time']['emoji'] in embed.fields[1].name and label['time']['name'] in embed.fields[1].name and\
 				label['countdown']['emoji'] in embed.fields[2].name and label['countdown']['name'] in embed.fields[2].name:
 				first = 3
+				if embed.fields[3].name == "\u200b":
+					first = 4
 			if label['accept']['emoji'] not in embed.fields[0 + first].name and label['accept']['name'] not in embed.fields[0].name:
 				return embed, "ignore"
 			if label['maybe']['emoji'] not in embed.fields[1 + first].name and label['maybe']['name'] not in embed.fields[1].name:
@@ -183,25 +191,26 @@ class Event(commands.Cog, name="Event Management"):
 			for idx, field in enumerate(embed.fields):
 				if idx < first:
 					continue
-				if idx % columns == column['accept']: # 0
+				if (idx-first) % columns == column['accept']: # 0
 					if len(field.value.strip()) > 0:
 						accepts.extend(field.value.strip().split("\n"))
-				elif idx % columns == column['maybe']: # 1
+				elif (idx-first) % columns == column['maybe']: # 1
 					if len(field.value.strip()) > 0:
 						maybes.extend(field.value.strip().split("\n"))
-				elif idx % columns == column['decline']: # 2
+				elif (idx-first) % columns == column['decline']: # 2
 					if len(field.value.strip()) > 0:
 						declines.extend(field.value.strip().split("\n"))
 				else:
 					print("error")
-			# make sure the list is unique
-			accepts = list(set(accepts))
-			maybes = list(set(maybes))
-			declines = list(set(declines))
+			#print(f"accepts:\n{accepts}")
+			#print(f"maybes:\n{maybes}")
+			#print(f"declines:\n{declines}")
 			if action == "add":
+				print(f"add: {emoji.name}")
 				valid_reaction = []
 				for er in label:
-					valid_reaction.append(label[er]["emoji"])
+					if isinstance(label[er], dict):
+						valid_reaction.append(label[er]["emoji"])
 				if emoji.name not in valid_reaction:
 					return embed, "remove"
 				if emoji.name == label['accept']['emoji']:
@@ -231,19 +240,28 @@ class Event(commands.Cog, name="Event Management"):
 				else:
 					return embed, "ignore"
 			elif action == "remove":
+				print(f"remove: {emoji.name}")
 				if emoji.name == label['accept']['emoji'] and member.mention in accepts:
+					print(f"found in accepts")
 					action = "update"
 					accepts.remove(member.mention)
 				elif emoji.name == label['maybe']['emoji'] and member.mention in maybes:
+					print(f"found in maybes")
 					action = "update"
 					maybes.remove(member.mention)
 				elif emoji.name == label['decline']['emoji'] and member.mention in declines:
+					print(f"found in declines")
 					action = "update"
 					declines.remove(member.mention)
 				else:
+					print(f"not found")
 					return embed, "ignore"
 			else:
 				return embed, "ignore"
+			# make unique
+			accepts = list(set(accepts))
+			maybes = list(set(maybes))
+			declines = list(set(declines))
 			# split the list into multiple lists if the list has more than items_limit members
 			accepts = [accepts[i:i + items_limit] for i in range(0, len(accepts), items_limit)]
 			maybes = [maybes[i:i + items_limit] for i in range(0, len(maybes), items_limit)]
@@ -251,6 +269,7 @@ class Event(commands.Cog, name="Event Management"):
 			largest = max(len(accepts), len(maybes), len(declines), 1)
 			# remove old fields
 			for r in range(len(embed.fields)-1, first-1, -1):
+				print(f"remove: {r}, {embed.fields[r].name}")
 				embed.remove_field(r)
 			# recreate the fields
 			for r in range(largest):

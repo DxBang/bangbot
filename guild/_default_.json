@@ -133,7 +133,7 @@
 			},
 			"team": {
 				"name": "Team",
-				"emoji": "🏁",
+				"emoji": "🏢",
 				"description": "The team you are racing for."
 			},
 			"car": {
@@ -183,7 +183,8 @@
 			"download": false,
 			"image": true,
 			"thumbnail": false
-		}
+		},
+		"use_separator": false
 	},
 	"channel": {
 		"welcome": null,
