@@ -68,7 +68,7 @@ class Event(commands.Cog, name="Event Management"):
 			embed = self.bot.embed(
 				ctx = ctx,
 				title = title,
-				description = "\n".join(description),
+				description = "\n".join(description).strip(),
 				bot = True,
 			)
 			embed.set_footer(
