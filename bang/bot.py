@@ -101,6 +101,14 @@ class Bang(commands.Bot):
 			with open(Dest.file("guild/_default_.json"), encoding="utf-8") as f:
 				self.config["default"] = json.load(f)
 			intents = discord.Intents.all()
+			activity = self.set_activity(
+				self.config["bot"]["activity"]['type'],
+				self.config["bot"]["activity"]['message'],
+				extra = dict(
+					start = self.data["service"],
+					url = 'https://bang.systems/',
+				)
+			)
 			super().__init__(
 				command_prefix = commands.when_mentioned_or(*self.config["bot"]["prefix"]),
 				intents = intents,
@@ -110,10 +118,7 @@ class Bang(commands.Bot):
 				chunk_guilds_at_startup = True,
 				max_messages = 2000,
 				status = self.config["bot"]["activity"]["status"],
-				activity = discord.Activity(
-					name = self.config["bot"]["activity"]["message"],
-					type = getattr(discord.ActivityType, self.config["bot"]["activity"]["type"]),
-				)
+				activity = activity
 			)
 			self.sql = None
 		except FileNotFoundError:
@@ -125,6 +130,47 @@ class Bang(commands.Bot):
 		except Exception as e:
 			traceback.print_exc()
 			sys.exit(1)
+
+	def set_activity(self, type:str, message:str, extra:dict = None) -> discord.Activity | discord.Game | discord.Streaming | discord.Activity | discord.CustomActivity | None:
+		try:
+			if type == "playing":
+				return discord.Game(
+					name = message,
+					start = extra['start'] if 'start' in extra is not None else None,
+					end = extra['end'] if 'end' in extra is not None else None,
+				)
+			if type == "streaming":
+				return discord.Streaming(
+					name = message,
+					url = extra['url'] if 'url' in extra is not None else None,
+				)
+			if type == "listening":
+				return discord.Activity(
+					name = message,
+					type = discord.ActivityType.listening
+				)
+			if type == "watching":
+				return discord.Activity(
+					name = message,
+					type = discord.ActivityType.watching
+				)
+			if type == "competing":
+				return discord.Activity(
+					name = message,
+					type = discord.ActivityType.competing
+				)
+			if type == "custom":
+				return discord.CustomActivity(
+					name = message,
+					type = discord.ActivityType.custom,
+				)
+			return discord.Activity(
+				name = message,
+				type = discord.ActivityType.playing
+			)
+		except Exception as e:
+			traceback.print_exc()
+			raise e
 
 	def run(self) -> None:
 		try:

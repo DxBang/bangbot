@@ -6,8 +6,8 @@
 		],
 		"activity": {
 			"status": "online",
-			"type": "playing",
-			"message": "with the universe"
+			"type": "custom",
+			"message": "Bang Systems"
 		},
 		"use_system_temp": false
 	},
