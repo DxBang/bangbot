@@ -27,19 +27,18 @@ class Event(commands.Cog, name="Event Management"):
 		```
 		{ctx.prefix}event The next race at Silverstone
 
-		We will be racing at Silverstone next week. Please react to the message to let us know if you are going, maybe, or not going.
-		So sign up @drivers and let us know if you are going to be there.
+		We will be racing at Silverstone next week....
 		```
 		If you want to use the date and time fields, you can use the following format:
 		```
 		{ctx.prefix}event The next event at Silverstone
 		date: 2024-12-31
 		time: 20:00
-		We will be racing at Silverstone next week. Please react to the message to let us know if you are going, maybe, or not going.....
+		We will be racing at Silverstone next week....
 		```
 		Note:
-		That when using the date and time fields, those lines will be removed from the description and the date and time will be added to the event message.
-		If you want to display the date and time in the event message, write them twice in the description.
+		That when using the date and time fields, it will be removed from the description.
+		If you want to display the date and time in the event message, write them twice.
 		---
 		Depending on the configuration, you can mention roles to lock the reactions to that role or have it completely locked to specific role(s).
 		A single image can be attached to the event message, and it can be set to be a thumbnail or the main image in the configuration.
