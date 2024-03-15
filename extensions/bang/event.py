@@ -166,17 +166,22 @@ class Event(commands.Cog, name="Event Management"):
 			label = self.bot.get_config(member.guild, "label", "event")
 			first = 0
 			# check if the embed has date, time, and countdown fields
-			if label['date']['emoji'] in embed.fields[0].name and label['date']['name'] in embed.fields[0].name and\
-				label['time']['emoji'] in embed.fields[1].name and label['time']['name'] in embed.fields[1].name and\
-				label['countdown']['emoji'] in embed.fields[2].name and label['countdown']['name'] in embed.fields[2].name:
+			if label['date']['emoji'] in embed.fields[0].name and\
+				label['time']['emoji'] in embed.fields[1].name and\
+				label['countdown']['emoji'] in embed.fields[2].name:
 				first = 3
+				print("has date, time, and countdown fields")
 				if embed.fields[3].name == "\u200b":
+					print("has separator")
 					first = 4
-			if label['accept']['emoji'] not in embed.fields[0 + first].name and label['accept']['name'] not in embed.fields[0].name:
+			if label['accept']['emoji'] not in embed.fields[0 + first].name:
+				print(f"failed accept: {label['accept']['emoji']}")
 				return embed, "ignore"
-			if label['maybe']['emoji'] not in embed.fields[1 + first].name and label['maybe']['name'] not in embed.fields[1].name:
+			if label['maybe']['emoji'] not in embed.fields[1 + first].name:
+				print(f"failed maybe: {label['maybe']['emoji']}")
 				return embed, "ignore"
-			if label['decline']['emoji'] not in embed.fields[2 + first].name and label['decline']['name'] not in embed.fields[2].name:
+			if label['decline']['emoji'] not in embed.fields[2 + first].name:
+				print(f"failed decline: {label['decline']['emoji']}")
 				return embed, "ignore"
 			items_limit = 20
 			column = {
@@ -188,6 +193,7 @@ class Event(commands.Cog, name="Event Management"):
 			accepts = []
 			maybes = []
 			declines = []
+			print(f"first: {first}, columns: {columns}")
 			for idx, field in enumerate(embed.fields):
 				if idx < first:
 					continue
