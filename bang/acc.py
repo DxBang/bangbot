@@ -136,11 +136,21 @@ class ACC:
 		}.get(short, short)
 
 	@staticmethod
-	def place(place:int) -> str:
+	def placePodium(place:int) -> str:
 		return {
 			1: "🥇",
 			2: "🥈",
 			3: "🥉",
+		}.get(place, f"{place}.")
+
+	@staticmethod
+	def place(place:int, podium:bool = False) -> str:
+		if podium and place in [1, 2, 3]:
+			return ACC.placePodium(place)
+		return {
+			1: "1️⃣",
+			2: "2️⃣",
+			3: "3️⃣",
 			4: "4️⃣",
 			5: "5️⃣",
 			6: "6️⃣",
@@ -245,11 +255,11 @@ class ACC:
 	@staticmethod
 	def driverName(driver:dict) -> str:
 		if driver["firstName"] != "" and driver["lastName"] != "":
-			return f"**{driver['firstName']} {driver['lastName']}**"
+			return f"{driver['firstName']} {driver['lastName']}"
 		elif driver["lastName"] != "":
-			return f"**{driver['lastName']}**"
+			return f"{driver['lastName']}"
 		else:
-			return f"**{driver['shortName']}**"
+			return f"{driver['shortName']}"
 
 	@staticmethod
 	def dateToEpoch(date:str, time:str, tz:str) -> int:

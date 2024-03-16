@@ -255,7 +255,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 			embed = self.bot.embed(
 				ctx = ctx,
 				title = f"{data['server']} · {date.strftime('%d %B %Y')}   ***` {data['typeName']} `***",
-				description = f"**{track}** · **{data['session']['laps']} laps** in **{ACC.convert_time(data['session']['time'])}** ({data['session']['time']}){' · ( 🌧️ )' if data['wet'] == 1 else ''}",
+				description = f"**{track}** · **{data['session']['laps']} laps** in **{ACC.convert_time(data['session']['time'])}** {' · ( 🌧️ )' if data['wet'] == 1 else ''}",
 				bot = True,
 			)
 			place = 1
@@ -267,7 +267,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 					drivers = []
 					for driver in car["drivers"].values():
 						drivers.append(
-							ACC.driverName(driver)
+							f"**{ACC.driverName(driver)}**"
 						)
 						if len(driver["penalties"]):
 							driver_penalties.append(
@@ -292,7 +292,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 					if place == 1:
 						leader = position
 						embed.add_field(
-							name = f"{ACC.place(place)} #{car['number']} {ACC.car(car['car'])[0]} {car['team']}",
+							name = f"{ACC.place(place, True)} #{car['number']} {ACC.car(car['car'])[0]} {car['team']}",
 							value = f"{drivers}   {ACC.convert_time(position['time'])}",
 							inline = inline,
 						)
@@ -300,7 +300,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 						if position["laps"] < leader["laps"]:
 							delta = leader["laps"] - position["laps"]
 							embed.add_field(
-								name = f"{ACC.place(place)} #{car['number']} {ACC.car(car['car'])[0]}",
+								name = f"{ACC.place(place, True)} #{car['number']} {ACC.car(car['car'])[0]}",
 								#value = f"{drivers} - {self.convert_time(position['time'])} (+{delta} laps)",
 								value = f"{drivers}   +{delta} lap{delta > 1 and 's' or ''}",
 								inline = inline,
@@ -308,7 +308,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 						else:
 							delta = position["time"] - leader["time"]
 							embed.add_field(
-								name = f"{ACC.place(place)} #{car['number']} {ACC.car(car['car'])[0]}",
+								name = f"{ACC.place(place, True)} #{car['number']} {ACC.car(car['car'])[0]}",
 								value = f"{drivers} · {ACC.convert_time(position['time'])} · (+{ACC.convert_time(delta)})",
 								inline = inline,
 							)
@@ -332,22 +332,23 @@ class ACCRace(commands.Cog, name="Race Results"):
 							best_lap = driver["best"]["lap"]
 							fastestDriver = driver
 						drivers.append(
-							ACC.driverName(driver)
+							f"**{ACC.driverName(driver)}**"
 						)
 					drivers = ", ".join(drivers)
 					if car["laps"] == 0:
 						best_time_str = "N/A"
 					else:
 						best_time_str = ACC.convert_time(best_time)
+					inline = True
 					embed.add_field(
 						name = f"{ACC.place(place)} #{car['number']} {ACC.car(car['car'])[0]} {car['team']}",
 						value = f"{drivers} · {best_time_str} on lap {best_lap} · ({position['laps']} lap{position['laps'] > 1 and 's' or ''})",
-						inline = False,
+						inline = inline,
 					)
 					place += 1
 			# show fastest lap
 
-			fastestDriver = ACC.driverName(data['cars'][data['fastest']['car']]['drivers'][data['fastest']['driver']])
+			fastestDriver = f"**{ACC.driverName(data['cars'][data['fastest']['car']]['drivers'][data['fastest']['driver']])}**"
 			embed.add_field(
 				name = "Fastest Lap",
 				value = f"**🛞 #{data['cars'][data['fastest']['car']]['number']}** {fastestDriver}"\
@@ -369,7 +370,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 							continue
 						cleared = f"Cleared on lap {penalty['cleared']}" if penalty["cleared"] >= penalty["violated"] else "**Not Cleared**"
 						embed.add_field(
-							name = f"⚠️ #{pen['car']['number']} {ACC.car(pen['car']['car'])[0]} · {ACC.driverName(pen['driver'])}",
+							name = f"⚠️ #{pen['car']['number']} {ACC.car(pen['car']['car'])[0]} · **{ACC.driverName(pen['driver'])}**",
 							value = f"Lap {penalty['violated']} · {penalty['reason']} · {penalty['penalty']} · {cleared}",
 							inline = False,
 						)

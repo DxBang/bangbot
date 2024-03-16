@@ -303,15 +303,52 @@ class Dest:
 
 	class json:
 		@staticmethod
-		def load(file:str) -> dict:
+		def read(string:str, convert:bool = False, int_key:bool = True) -> dict:
 			try:
+				if convert is True:
+					return Dest.json.convert(
+						json.loads(string),
+						int_key
+					)
+				return json.loads(string)
+			except Exception as e:
+				raise e
+
+		@staticmethod
+		def load(file:str, convert:bool = False, int_key:bool = True) -> dict:
+			try:
+				if convert is True:
+					return Dest.json.convert(
+						Dest.json.load(file),
+						int_key
+					)
 				with open(file, "rb+") as f:
 					return json.load(f)
 			except Exception as e:
 				raise e
 
 		@staticmethod
-		def save(file:str, data:dict) -> None:
+		def convert(data, int_key:bool = True) -> dict|list|str|int|float:
+			try:
+				ret = None
+				if type(data) is dict:
+					ret:dict = {}
+					for key, value in data.items():
+						if int_key is True and key.isdigit() and str(int(key)) == key:
+							key = int(key)
+						ret[key] = Dest.json.convert(value, int_key)
+				elif type(data) is list:
+					ret:list = []
+					for value in data:
+						ret.append(Dest.json.convert(value, int_key))
+				else:
+					ret = data
+				return ret
+			except Exception as e:
+				raise e
+
+		@staticmethod
+		def save(file:str, data) -> None:
 			try:
 				with open(file, "w+") as f:
 					json.dump(data, f, indent='\t')
