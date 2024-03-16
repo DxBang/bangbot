@@ -184,7 +184,7 @@ class Graph(commands.Cog, name="Graph"):
 					Dest.join(temp, jsonFile),
 					data,
 				)
-				wet = "".join(["&#" + str(ord(char)) + ";" for char in "🌧️"])
+				wet = "(wet)"
 				df = pd.DataFrame(data)
 				# create a figure and axis
 				fig = px.line(
@@ -459,7 +459,7 @@ class Graph(commands.Cog, name="Graph"):
 							f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.driverName(cars.get(_car['carId']).get('drivers', {}).get(_car['driverIndex'], {}))}",
 							#f"#{cars.get(_car['carId'], {}).get('number', 'N/A')} {cars.get(_car['carId']).get('drivers', {}).get(_car['driverIndex'], {}).get('lastName', 'N/A')}"
 						)
-				wet = "".join(["&#" + str(ord(char)) + ";" for char in "🌧️"])
+				wet = "(wet)"
 				df = pd.DataFrame({
 					"lap": x,
 					"position": y,
