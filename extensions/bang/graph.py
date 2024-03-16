@@ -183,6 +183,7 @@ class Graph(commands.Cog, name="Graph"):
 					Dest.join(temp, jsonFile),
 					data,
 				)
+				wet = "".join(["&#" + str(ord(char)) + ";" for char in "🌧️"])
 				df = pd.DataFrame(data)
 				# create a figure and axis
 				fig = px.line(
@@ -191,7 +192,7 @@ class Graph(commands.Cog, name="Graph"):
 					y = "laptime_ms",
 					line_shape = "spline",
 					color = "driver",
-					title = f"{result['server']} · {ACC.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps {' 🌧️' if result['wet'] == 1 else ''}",
+					title = f"{result['server']} · {ACC.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps {wet if result['wet'] == 1 else ''}",
 					labels = {
 						"laptime_ms": label['laptime'],
 						"lap": label["laps"],
@@ -457,6 +458,7 @@ class Graph(commands.Cog, name="Graph"):
 							f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.driverName(cars.get(_car['carId']).get('drivers', {}).get(_car['driverIndex'], {}))}",
 							#f"#{cars.get(_car['carId'], {}).get('number', 'N/A')} {cars.get(_car['carId']).get('drivers', {}).get(_car['driverIndex'], {}).get('lastName', 'N/A')}"
 						)
+				wet = "".join(["&#" + str(ord(char)) + ";" for char in "🌧️"])
 				df = pd.DataFrame({
 					"lap": x,
 					"position": y,
@@ -469,7 +471,7 @@ class Graph(commands.Cog, name="Graph"):
 					color = "car",
 					line_shape = "spline",
 					template = "plotly_dark",
-					title = f"{result['server']} · {ACC.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps {' 🌧️' if result['wet'] == 1 else ''}",
+					title = f"{result['server']} · {ACC.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps {wet if result['wet'] == 1 else ''}",
 					labels = {
 						"position": label["positions"],
 						"lap": label["laps"],
