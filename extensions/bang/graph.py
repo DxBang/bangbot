@@ -232,7 +232,7 @@ class Graph(commands.Cog, name="Graph"):
 					color = "car",
 					title = f"{race['session']['name']} · {race['session']['track']['name']} · {race['session']['type']['name']}"\
 						f" · {race['session']['laps']} laps{' (wet)' if race['session']['wet'] == 1 else ''}"\
-						f" · {session['info']['datetime'].strftime('%m-%d-%y @%H')}",
+						f" · {session['info']['datetime'].strftime(label['format_date'])}",
 					labels = {
 						"laptime_ms": label["laptime"],
 						"lap": label["laps"],
@@ -452,7 +452,7 @@ class Graph(commands.Cog, name="Graph"):
 					color = "car",
 					title = f"{race['session']['name']} · {race['session']['track']['name']} · {race['session']['type']['name']}"\
 						f" · {race['session']['laps']} laps{' (wet)' if race['session']['wet'] == 1 else ''}"\
-						f" · {session['info']['datetime'].strftime('%m-%d-%y @%H')}",
+						f" · {session['info']['datetime'].strftime(label['format_date'])}",
 					labels = {
 						"position": label["positions"],
 						"lap": label["laps"],
