@@ -491,7 +491,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 			print(f"qualify: {date} {time} {sync}")
 			await self.handleRequest(
 				ctx = ctx,
-				session = "r",
+				session = "q",
 				date = ACC.parseDate(date),
 				time = ACC.parseTime(time),
 				sync = Human.parseBool(sync),
