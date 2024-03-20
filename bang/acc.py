@@ -705,6 +705,7 @@ class ACC:
 		session:str = 'R'
 		top:list[int] = []
 		numbers:list[int] = []
+		sync:bool = False
 		if input is None:
 			return date, time, session, top, numbers
 		inputs = input.split(" ")
@@ -721,10 +722,13 @@ class ACC:
 			if input.startswith("#"):
 				numbers = [int(number) for number in input[1:].split(",")]
 				continue
+			if input.lower() in ["sync", "s", "y", "yes", "true", "t"]:
+				sync = True
+				continue
 			if date is None:
 				date = ACC.parseDate(input)
 				continue
 			if date is not None and time is None:
 				time = ACC.parseTime(input)
 				continue
-		return date, time, session, top, numbers
+		return date, time, session, top, numbers, sync

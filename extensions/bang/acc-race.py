@@ -417,7 +417,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		]
 	)
 	@commands.guild_only()
-	async def race(self, ctx:commands.Context, date:str = None, time:str = None, sync:bool = False) -> None:
+	async def race(self, ctx:commands.Context, *, input:str = None) -> None:
 		"""
 		Get the race results of the date
 		```
@@ -427,6 +427,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		```
 		"""
 		try:
+			date, time, _, _, _, sync = ACC.parseRaceInput(input)
 			if date == '*' or time == '*':
 				return await self.handleList(
 					ctx = ctx,
@@ -468,7 +469,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		],
 	)
 	@commands.guild_only()
-	async def qualify(self, ctx:commands.Context, date:str = None, time:str = None, sync:bool = False) -> None:
+	async def qualify(self, ctx:commands.Context, *, input:str = None) -> None:
 		"""
 		Get the qualifying results of the date
 		```
@@ -478,6 +479,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		```
 		"""
 		try:
+			date, time, _, _, _, sync = ACC.parseRaceInput(input)
 			if date == '*' or time == '*':
 				return await self.handleList(
 					ctx = ctx,
@@ -519,7 +521,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		],
 	)
 	@commands.guild_only()
-	async def practice(self, ctx:commands.Context, date:str = None, time:str = None, sync:bool = False) -> None:
+	async def practice(self, ctx:commands.Context, *, input:str = None) -> None:
 		"""
 		Get the practice results of the date
 		```
@@ -529,6 +531,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		```
 		"""
 		try:
+			date, time, _, _, _, sync = ACC.parseRaceInput(input)
 			if date == '*' or time == '*':
 				return await self.handleList(
 					ctx = ctx,

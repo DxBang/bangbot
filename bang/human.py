@@ -9,7 +9,7 @@ class Human:
 		time = r"[.:]?",
 	)
 	@staticmethod
-	def date(date:str = None) -> datetime:
+	def date(date:str = None) -> datetime | str:
 		try:
 			if isinstance(date, datetime):
 				return date
@@ -21,6 +21,8 @@ class Human:
 					minute=59,
 					second=59
 				)
+			if date.lower() in ['*', 'all', 'full', 'complete', 'any']:
+				return '*'
 			if date.lower() == "now":
 				return datetime.now(
 					timezone.utc
@@ -91,7 +93,7 @@ class Human:
 			raise e
 
 	@staticmethod
-	def time(time:str = None) -> datetime:
+	def time(time:str = None) -> datetime | str:
 		try:
 			if isinstance(time, datetime):
 				return time
@@ -103,6 +105,8 @@ class Human:
 					minute=59,
 					second=59
 				)
+			if time.lower() in ['*', 'all', 'full', 'complete', 'any']:
+				return '*'
 			if time.lower() == "now":
 				return datetime.now(
 					timezone.utc
