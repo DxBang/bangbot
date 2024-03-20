@@ -172,7 +172,6 @@ class Graph(commands.Cog, name="Graph"):
 				print(f"\theat: {type(heat)} {heat}")
 				print(f"\ttop: {type(top)} {top}")
 				print(f"\tnumber: {type(numbers)} {numbers}")
-
 				temp = self.bot.getTemp("results")
 				session = ACC.session(
 					temp,
@@ -236,12 +235,13 @@ class Graph(commands.Cog, name="Graph"):
 				if len(showCars) == 0:
 					showCars = list(cars.keys())
 				showCars = list(set(showCars))
-				#print("showCars")
+				print("showCars")
+				for carId in showCars:
+					print(f"carId: {carId} as #{cars.get(carId, {}).get('number', '0')}")
 				#Dest.json.print(showCars)
 
 				# calculate the average laptime for each car and set that to the first lap
 				for carId in showCars:
-					print(f"carId: {carId} as {type(carId)}")
 					lapTimes:list[int] = []
 					for _lap, _cars in enumerate(race["laps"]):
 						if _lap == 0:
@@ -254,9 +254,8 @@ class Graph(commands.Cog, name="Graph"):
 					#print("lapTimes:")
 					#Dest.json.print(lapTimes)
 					carAvgLaptime[carId] = sum(lapTimes) / len(lapTimes)
-				print("carAvgLaptime")
-				Dest.json.print(carAvgLaptime)
-
+				#print("carAvgLaptime")
+				#Dest.json.print(carAvgLaptime)
 				# prepare the data for the graph
 				for _lap, _cars in enumerate(race["laps"]):
 					if _lap == 0:

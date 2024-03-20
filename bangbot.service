@@ -9,6 +9,7 @@ Group=www-data
 WorkingDirectory=/srv/discord/bangbot
 ExecStart=/srv/discord/bangbot/.venv/bin/python3 /srv/discord/bangbot/main.py
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

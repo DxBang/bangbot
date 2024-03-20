@@ -1,8 +1,13 @@
+* text=auto eol=lf
 .git* text eol=lf
 *.py text eol=lf
 *.json text eol=lf
 *.sh text eol=lf
 *.md text eol=lf
 *.txt text eol=lf
-.version text eol=lf
+*.svg text eol=lf
 .editorconfig text eol=lf
+.version text
+*.png binary
+*.jpg binary
+*.ttf binary
