@@ -85,6 +85,9 @@
 	},
 	"label": {
 		"graph": {
+			"format_date": "%Y-%m-%d",
+			"format_time": "%H:%M:%S",
+			"format_datetime": "%Y-%m-%d %H:%M",
 			"fastest": "Fastest Lap",
 			"slowest": "Slowest Lap",
 			"average": "Average Lap",

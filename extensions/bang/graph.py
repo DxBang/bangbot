@@ -89,67 +89,6 @@ class Graph(commands.Cog, name="Graph"):
 		except Exception as e:
 			raise e
 
-
-	def parse_graph_input(self, input:str = None) -> tuple[str, str, str, list[int], list[int]]:
-		# check if input is empty
-		return ACC.parseRaceInput(input)
-		if input is None:
-			input = "latest"
-		# split input per space
-		inputs = input.split(" ")
-		# check if input is a date
-		date:str = None
-		time:str = None
-		heat:str = "R"
-		top:list[int] = []
-		numbers:list[int] = []
-		for input in inputs:
-			print(f"input: {input}")
-			if input.lower() in ["r", "q", "fp", "f"]:
-				print(f"	heat: {input}")
-				if input.lower() == "f":
-					heat = "FP"
-				else:
-					heat = input.upper()
-				continue
-			if input.startswith("#"):
-				print(f"	number: {input}")
-				# remove # and split by comma
-				numbers = [int(number) for number in input[1:].split(",")]
-				continue
-			if re.match(r"^[0-9]+-[0-9]+$", input):
-				print(f"	top: {input}")
-				top = input.split("-")
-				# convert to int
-				top = [int(top[0]), int(top[1])]
-				if int(top[0]) > int(top[1]):
-					raise ValueError("Invalid range. The first number must be lower than the second.")
-				continue
-			if date is None:
-				try:
-					date = Human.date(input)
-					print(f"	date: {date}")
-					if date is not None:
-						continue
-				except Exception as e:
-					print(f"Date Error: {e}")
-			if date is not None and time is None:
-				try:
-					time = Human.time(input)
-					print(f"	time: {time}")
-					if time is not None:
-						continue
-				except Exception as e:
-					print(f"Time Error: {e}")
-		if date is None:
-			date = Human.date("latest")
-			print(f"date: {date}")
-		if time is None:
-			time = Human.time("latest")
-			print(f"time: {time}")
-			# check if input is a car number
-		return date, time, heat, top, numbers
-
 	@commands.command(
 		description = "Show a graph of drivers lap times",
 		usage = "laptime [input with date and time or latest and maybe type of the race and #car number or 1-10 for top 10]",
@@ -165,7 +104,7 @@ class Graph(commands.Cog, name="Graph"):
 		try:
 			print(f"laptimes")
 			async with ctx.typing():
-				date, time, heat, top, numbers = ACC.parseRaceInput(input)
+				date, time, heat, top, numbers, _ = ACC.parseRaceInput(input)
 				print(f"positions")
 				print(f"\tdate: {type(date)} {date}")
 				print(f"\ttime: {type(time)} {time}")
@@ -238,8 +177,6 @@ class Graph(commands.Cog, name="Graph"):
 				print("showCars")
 				for carId in showCars:
 					print(f"carId: {carId} as #{cars.get(carId, {}).get('number', '0')}")
-				#Dest.json.print(showCars)
-
 				# calculate the average laptime for each car and set that to the first lap
 				for carId in showCars:
 					lapTimes:list[int] = []
@@ -251,11 +188,7 @@ class Graph(commands.Cog, name="Graph"):
 								continue
 							if _car["carId"] == carId:
 								lapTimes.append(_car["time"])
-					#print("lapTimes:")
-					#Dest.json.print(lapTimes)
 					carAvgLaptime[carId] = sum(lapTimes) / len(lapTimes)
-				#print("carAvgLaptime")
-				#Dest.json.print(carAvgLaptime)
 				# prepare the data for the graph
 				for _lap, _cars in enumerate(race["laps"]):
 					if _lap == 0:
@@ -273,7 +206,6 @@ class Graph(commands.Cog, name="Graph"):
 						continue
 					for _car in _cars:
 						team = cars.get(_car["carId"], {})
-						# check if the carId is in the showCars list
 						if _car["carId"] not in showCars:
 							continue
 						x.append(_lap + 1)
@@ -286,7 +218,6 @@ class Graph(commands.Cog, name="Graph"):
 							slowest_laptime_ms = _car["time"]
 						if _car["time"] < fastest_laptime_ms:
 							fastest_laptime_ms = _car["time"]
-
 				# create a dataframe
 				df = pd.DataFrame({
 					"lap": x,
@@ -321,8 +252,6 @@ class Graph(commands.Cog, name="Graph"):
 				),
 				fig.add_annotation(
 					x = min(x) + 0.5,
-					# get the middle of the y axis
-					#y = (fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 2) + 4000,
 					y = (fastest_laptime_ms + slowest_laptime_ms) / 2,
 					text = label["bug_start_laptimes"],
 					showarrow = False,
@@ -335,7 +264,6 @@ class Graph(commands.Cog, name="Graph"):
 				yTickvals = [fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 10 * i for i in range(11)]
 				fig.update_layout(
 					xaxis = dict(
-						# set range to 1 to laps
 						range = [1, race['session']['laps']],
 					),
 					yaxis = dict(
@@ -447,7 +375,7 @@ class Graph(commands.Cog, name="Graph"):
 		"""
 		try:
 			async with ctx.typing():
-				date, time, _, _, _ = ACC.parseRaceInput(input)
+				date, time, _, _, _, _ = ACC.parseRaceInput(input)
 				print(f"positions date: {date}\ntime: {time}")
 				temp = self.bot.getTemp("results")
 				session = ACC.session(

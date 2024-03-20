@@ -409,7 +409,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 	@commands.command(
 		description = "Get the results of the date",
 		usage = "race [date] [time]",
-		hidden = False,
+		hidden = True,
 		aliases = [
 			"r",
 			"result",
@@ -417,6 +417,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		]
 	)
 	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
 	async def race(self, ctx:commands.Context, *, input:str = None) -> None:
 		"""
 		Get the race results of the date
@@ -459,7 +460,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 	@commands.command(
 		description = "Get the results of the date",
 		usage = "qualify [date] [time]",
-		hidden = False,
+		hidden = True,
 		aliases = [
 			"q",
 			"qual",
@@ -469,6 +470,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		],
 	)
 	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
 	async def qualify(self, ctx:commands.Context, *, input:str = None) -> None:
 		"""
 		Get the qualifying results of the date
@@ -511,7 +513,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 	@commands.command(
 		description = "Get the results of the date",
 		usage = "practice [date] [time]",
-		hidden = False,
+		hidden = True,
 		aliases = [
 			"f",
 			"fp",
@@ -521,6 +523,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		],
 	)
 	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
 	async def practice(self, ctx:commands.Context, *, input:str = None) -> None:
 		"""
 		Get the practice results of the date
@@ -563,7 +566,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 	@commands.command(
 		description = "Clean up the FTP from empty result files",
 		usage = "clean",
-		hidden = False,
+		hidden = True,
 	)
 	@commands.guild_only()
 	@commands.is_owner()
