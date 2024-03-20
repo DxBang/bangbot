@@ -707,7 +707,7 @@ class ACC:
 		numbers:list[int] = []
 		sync:bool = False
 		if input is None:
-			return date, time, session, top, numbers
+			return date, time, session, top, numbers, sync
 		inputs = input.split(" ")
 		for input in inputs:
 			if input.lower() in ["r", "q", "fp", "f", "p"]:
