@@ -9,7 +9,7 @@ from discord import app_commands
 from datetime import datetime, timedelta, timezone
 from typing import Coroutine, NamedTuple
 import platform
-from bang.dest import Dest
+from .dest import Dest
 
 
 def cprint(message:str, fg:str="white", bg:str="black", end:str="\n") -> None:
@@ -63,7 +63,7 @@ def cprint(message:str, fg:str="white", bg:str="black", end:str="\n") -> None:
 
 
 
-class Bang(commands.Bot):
+class Bot(commands.Bot):
 	__slots__ = (
 		"token",
 		"config",
@@ -74,6 +74,8 @@ class Bang(commands.Bot):
 		"__version__",
 		"__POWERED_BY__",
 	)
+	def test(self):
+		print("tested!")
 
 	def __init__(self, token:str = None) -> None:
 		try:
@@ -87,8 +89,7 @@ class Bang(commands.Bot):
 			# print in white
 			cprint(f"{self.__name__} v{self.__version__} (discord.py v{discord.__version__}) (Python v{platform.python_version()})", "blue")
 			print("Loading config.json")
-			with open(Dest.file("config.json"), encoding="utf-8") as f:
-				self.config = json.load(f)
+			self.config = Dest.json.load(Dest.file("config.json"))
 			self.config.update(
 				{
 					"guilds": {}
@@ -98,10 +99,9 @@ class Bang(commands.Bot):
 				"service": datetime.now(timezone.utc),
 				"connect": None,
 			}
-			with open(Dest.file("guild/_default_.json"), encoding="utf-8") as f:
-				self.config["default"] = json.load(f)
+			self.config["default"] = Dest.json.load(Dest.file("guild/_default_.json"))
 			intents = discord.Intents.all()
-			activity = self.set_activity(
+			activity = self.setActivity(
 				self.config["bot"]["activity"]['type'],
 				self.config["bot"]["activity"]['message'],
 				extra = dict(
@@ -131,7 +131,7 @@ class Bang(commands.Bot):
 			traceback.print_exc()
 			sys.exit(1)
 
-	def set_activity(self, type:str, message:str, extra:dict = None) -> discord.Activity | discord.Game | discord.Streaming | discord.Activity | discord.CustomActivity | None:
+	def setActivity(self, type:str, message:str, extra:dict = None) -> discord.Activity | discord.Game | discord.Streaming | discord.Activity | discord.CustomActivity | None:
 		try:
 			if type == "playing":
 				return discord.Game(
@@ -192,7 +192,7 @@ class Bang(commands.Bot):
 	async def setup_hook(self) -> None:
 		try:
 			cprint("setup_hook()", "green")
-			print(f"Temp: {self.get_temp()}")
+			print(f"Temp: {self.getTemp()}")
 			for ext in self.config["extensions"]:
 				if ext[0] == "!":
 					continue
@@ -325,14 +325,19 @@ class Bang(commands.Bot):
 		try:
 			cprint(f"on_guild_available({guild})", "green")
 			config_file = Dest.file(f"guild/{str(guild.id)}.json")
-			if exists(config_file):
-				with open(config_file, encoding="utf-8") as fh:
-					config = json.loads(
-						fh.read(),
-					)
+			if Dest.exists(config_file):
+				config = Dest.json.load(config_file)
+				save = False
+				if "id" not in config:
 					config["id"] = guild.id
-					self.config["guilds"].update({guild.id: config})
-				nick = self.get_config(guild, "nick")
+					save = True
+				if "name" not in config:
+					config["name"] = guild.name
+					save = True
+				if save:
+					Dest.json.save(config_file, config)
+				self.config["guilds"].update({guild.id: config})
+				nick = self.getConfig(guild, "nick")
 				if nick is not None:
 					await guild.me.edit(
 						nick=nick
@@ -352,7 +357,7 @@ class Bang(commands.Bot):
 		except Exception as e:
 			self.debug(e)
 
-	def get_default(self, *args) -> list | dict | int | str | bool | None:
+	def getDefault(self, *args) -> list | dict | int | str | bool | None:
 		try:
 			config = self.config["default"]
 			for arg in args:
@@ -365,9 +370,9 @@ class Bang(commands.Bot):
 		except Exception as e:
 			self.debug(e)
 
-	def get_config(self, guild:discord.Guild = None, *args) -> list | dict | int | str | bool | None:
+	def getConfig(self, guild:discord.Guild = None, *args) -> list | dict | int | str | bool | None:
 		try:
-			default = self.get_default(*args)
+			default = self.getDefault(*args)
 			if guild is None:
 				return default
 			if guild.id in self.config["guilds"]:
@@ -389,27 +394,10 @@ class Bang(commands.Bot):
 						return default
 					return config
 			return default
-
-			"""
-			found:bool = False
-			if guild is not None and guild.id in self.config["guilds"]:
-				config = self.config["guilds"][guild.id]
-				found = True
-				for arg in args:
-					if arg in config:
-						config = config[arg]
-						continue
-					config = None
-					found = False
-					break
-			if found:
-				return config
-			return self.get_default(*args)
-			"""
 		except Exception as e:
 			self.debug(e)
 
-	def get_temp(self, subfolder:str = None) -> str:
+	def getTemp(self, subfolder:str = None) -> str:
 		try:
 			return Dest.temp(
 				system = self.config["bot"]["use_system_temp"],
@@ -468,7 +456,7 @@ class Bang(commands.Bot):
 				description = description,
 				color = color,
 			)
-			if author and self.get_config(guild, "embed", "author"):
+			if author and self.getConfig(guild, "embed", "author"):
 				if bot:
 					embed.set_author(
 						name = guild.me.name,
@@ -479,7 +467,7 @@ class Bang(commands.Bot):
 						name = member.display_name,
 						icon_url = member.avatar,
 					)
-			if thumbnail and self.get_config(guild, "embed", "thumbnail"):
+			if thumbnail and self.getConfig(guild, "embed", "thumbnail"):
 				if bot:
 					embed.set_thumbnail(
 						url = guild.me.avatar,
@@ -492,7 +480,7 @@ class Bang(commands.Bot):
 					embed.set_thumbnail(
 						url = guild.icon,
 					)
-			if self.get_config(guild, "embed", "footer"):
+			if self.getConfig(guild, "embed", "footer"):
 				embed.set_footer(
 					text = guild.name,
 				)
@@ -502,9 +490,9 @@ class Bang(commands.Bot):
 				e
 			)
 
-	async def download_attachment(self, attachment:discord.Attachment, subfolder:str = None) -> discord.File:
+	async def downloadAttachment(self, attachment:discord.Attachment, subfolder:str = None) -> discord.File:
 		try:
-			temp = self.get_temp(subfolder)
+			temp = self.getTemp(subfolder)
 			path = Dest.join(
 				temp,
 				attachment.filename
@@ -521,13 +509,13 @@ class Bang(commands.Bot):
 				e,
 			)
 
-	async def download_attachments(self, attachments:list, subfolder:str = None) -> list:
+	async def downloadAttachments(self, attachments:list, subfolder:str = None) -> list:
 		try:
 			# use discord.file()
 			files = []
 			for attachment in attachments:
 				files.append(
-					await self.download_attachment(attachment, subfolder)
+					await self.downloadAttachment(attachment, subfolder)
 				)
 			return files
 		except Exception as e:
@@ -577,7 +565,7 @@ class Bang(commands.Bot):
 		try:
 			cprint(f"LOG: {ctx.guild}: {log}", fg="cyan", bg="black")
 			message = ctx.message
-			log_channel = self.get_config(ctx.guild, "channel", "log")
+			log_channel = self.getConfig(ctx.guild, "channel", "log")
 			if log_channel is None:
 				return
 			log_channel = self.get_channel(log_channel)
@@ -612,7 +600,7 @@ class Bang(commands.Bot):
 				)
 				files = None
 				if len(message.attachments) > 0:
-					files = await self.download_attachments(message.attachments, "log")
+					files = await self.downloadAttachments(message.attachments, "log")
 					embed.add_field(
 						name = "Attachments",
 						value = "\n".join([file.filename for file in files]),
@@ -661,7 +649,7 @@ class Bang(commands.Bot):
 				cooldown = (now + timedelta(seconds=round(error.retry_after))) - now
 				return await ctx.send(
 					random.choice(
-						self.get_config(ctx.guild, "response", "error_command_cooldown")
+						self.getConfig(ctx.guild, "response", "error_command_cooldown")
 					).format(
 						author = ctx.author.mention,
 						command = ctx.command,
@@ -674,7 +662,7 @@ class Bang(commands.Bot):
 			elif isinstance(error, commands.DisabledCommand):
 				return await ctx.send(
 					random.choice(
-						self.get_config(ctx.guild, "response", "error_command_disabled")
+						self.getConfig(ctx.guild, "response", "error_command_disabled")
 					).format(
 						author = ctx.author.mention,
 						command = ctx.command,
@@ -685,7 +673,7 @@ class Bang(commands.Bot):
 			elif isinstance(error, commands.MissingRequiredArgument):
 				return await ctx.send(
 					random.choice(
-						self.get_config(ctx.guild, "response", "error_command_missing_argument")
+						self.getConfig(ctx.guild, "response", "error_command_missing_argument")
 					).format(
 						author = ctx.author.mention,
 						command = ctx.command,
@@ -697,7 +685,7 @@ class Bang(commands.Bot):
 			elif isinstance(error, commands.CommandNotFound):
 				return await ctx.send(
 					random.choice(
-						self.get_config(ctx.guild, "response", "error_command_not_found")
+						self.getConfig(ctx.guild, "response", "error_command_not_found")
 					).format(
 						author = ctx.author.mention,
 						command = ctx.command,
@@ -710,7 +698,7 @@ class Bang(commands.Bot):
 				try:
 					return await ctx.author.send(
 						random.choice(
-							self.get_config(ctx.guild, "response", "error_command_not_in_private")
+							self.getConfig(ctx.guild, "response", "error_command_not_in_private")
 						).format(
 							author = ctx.author.mention,
 							command = ctx.command,
@@ -722,7 +710,7 @@ class Bang(commands.Bot):
 				if ctx.command.qualified_name == "tag list":
 					return await ctx.send(
 						random.choice(
-							self.get_config(ctx.guild, "response", "error_command_bad_argument_tag")
+							self.getConfig(ctx.guild, "response", "error_command_bad_argument_tag")
 						).format(
 							author = ctx.author.mention,
 							command = ctx.command,
@@ -733,7 +721,7 @@ class Bang(commands.Bot):
 					)
 				return await ctx.send(
 					random.choice(
-						self.get_config(ctx.guild, "response", "error_command_bad_argument")
+						self.getConfig(ctx.guild, "response", "error_command_bad_argument")
 					).format(
 						author = ctx.author.mention,
 						command = ctx.command,
@@ -745,7 +733,7 @@ class Bang(commands.Bot):
 			elif isinstance(error, commands.NotOwner):
 				return await ctx.send(
 					random.choice(
-						self.get_config(ctx.guild, "response", "error_command_not_owner")
+						self.getConfig(ctx.guild, "response", "error_command_not_owner")
 					).format(
 						author = ctx.author.mention,
 						command = ctx.command,
@@ -757,7 +745,7 @@ class Bang(commands.Bot):
 			elif isinstance(error, commands.MissingPermissions):
 				return await ctx.send(
 					random.choice(
-						self.get_config(ctx.guild, "response", "error_command_missing_permissions")
+						self.getConfig(ctx.guild, "response", "error_command_missing_permissions")
 					).format(
 						author = ctx.author.mention,
 						command = ctx.command,

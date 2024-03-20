@@ -1,3 +1,4 @@
+import bang
 from discord.ext import commands
 import re
 
@@ -5,7 +6,7 @@ class Help(commands.Cog, name="Help Command"):
 	__slots__ = (
 		"bot"
 	)
-	def __init__(self, bot:commands.Bot) -> None:
+	def __init__(self, bot:bang.Bot) -> None:
 		try:
 			self.bot = bot
 			self.bot.remove_command("help")
@@ -21,7 +22,7 @@ class Help(commands.Cog, name="Help Command"):
 	)
 	async def help(self, ctx:commands.Context, help:str = None) -> None:
 		try:
-			showHiddenChannels = self.bot.get_config(ctx.guild, "channel", "staff")
+			showHiddenChannels = self.bot.getConfig(ctx.guild, "channel", "staff")
 			showHidden = False
 			if showHiddenChannels:
 				showHidden = ctx.channel.id in showHiddenChannels
@@ -150,7 +151,7 @@ class Help(commands.Cog, name="Help Command"):
 				ctx = ctx,
 			)
 
-async def setup(bot:commands.Bot) -> None:
+async def setup(bot:bang.Bot) -> None:
 	try:
 		await bot.add_cog(
 			Help(

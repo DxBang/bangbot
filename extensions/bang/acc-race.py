@@ -1,6 +1,7 @@
 """
 Login to ACC Dedicated Server via FTP and get the race results.
 """
+import bang
 import ftplib
 from datetime import datetime
 import re
@@ -9,21 +10,23 @@ from discord.ext import commands
 #from discord import app_commands
 from bang.dest import Dest
 from bang.acc import ACC
+from bang.human import Human
 import traceback
+
 
 class ACCRace(commands.Cog, name="Race Results"):
 	__slots__ = (
 		"bot",
 		"ftp",
 	)
-	def __init__(self, bot:commands.Bot) -> None:
+	def __init__(self, bot:bang.Bot) -> None:
 		try:
 			self.bot = bot
 			self.ftp = ftplib.FTP()
 		except Exception as e:
 			raise e
 
-	def get_results(self, config, pattern:str, latest:bool = False) -> list | None:
+	def getResults(self, config, pattern:str, latest:bool = False) -> list | None:
 		try:
 			print(f"get_results: {pattern}")
 			if (('host' not in config or config['host'] is None) or
@@ -35,7 +38,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 			self.ftp.connect(config['host'], config['port'])
 			self.ftp.login(config['user'], config['password'])
 			self.ftp.cwd(config['directory'])
-			temp = self.bot.get_temp("results")
+			temp = self.bot.getTemp("results")
 			# check if storage directory exists and create if not
 			files = []
 			self.ftp.retrlines("LIST", files.append)
@@ -60,318 +63,200 @@ class ACCRace(commands.Cog, name="Race Results"):
 			self.bot.debug(e)
 			raise e
 
-	def load_result(self, filename:str) -> dict:
+	async def sync_results(self, config) -> tuple[list, list]:
+		if (('host' not in config or config['host'] is None) or
+			('port' not in config or config['port'] is None) or
+			('user' not in config or config['user'] is None) or
+			('password' not in config or config['password'] is None) or
+			('directory' not in config or config['directory'] is None)):
+			raise ValueError("FTP configuration is incomplete.")
+		print(f"sync_results: {config}")
+		temp = self.bot.getTemp("results")
+		self.ftp.connect(config['host'], config['port'])
+		self.ftp.login(config['user'], config['password'])
+		self.ftp.cwd(config['directory'])
+		files = []
+		download_files = []
+		delete_files = []
+		self.ftp.retrlines("LIST", files.append)
+		filenames = [line.split()[-1] for line in files]
+		for filename in filenames:
+			local_filename = Dest.join(temp, filename)
+			if not Dest.exists(local_filename):
+				print(f"download: {filename}")
+				with open(local_filename, "wb") as file:
+					self.ftp.retrbinary(f"RETR {filename}",
+						file.write
+					)
+					download_files.append(filename)
+			data = Dest.json.load(local_filename)
+			if len(data["laps"]) == 0:
+				print(f"delete: {filename}")
+				Dest.rename(local_filename, Dest.backup(local_filename))
+				delete_files.append(filename)
+				#self.ftp.delete(filename)
+		self.ftp.quit()
+		return download_files, delete_files
+
+	def loadResult(self, file:str) -> dict:
 		try:
-			print(f"load_result: {filename}")
-			data = Dest.json.load(filename)
-			drivers = []
-			cars = {}
-			positions = []
-			fastest = {}
-			session_laps = 0
-			session_time = 0
-			if len(data["sessionResult"]["leaderBoardLines"]) > 0:
-				fastest = {
-					"car": 0,
-					"driver": 0,
-					"lap": 0,
-					"time": data["sessionResult"]["bestlap"],
-				}
-				for position in data["sessionResult"]["leaderBoardLines"]:
-					carId = position["car"]["carId"]
-					car = {
-						"number": position["car"]["raceNumber"],
-						"car": position["car"]["carModel"],
-						"cup": position["car"]["cupCategory"],
-						"group": position["car"]["carGroup"],
-						"team": position["car"]["teamName"],
-						"laps": 0,
-						"time": 0,
-						"best": {
-							"lap": position["timing"]["lapCount"] - 1, # -1 for formation lap
-							"time": position["timing"]["bestLap"],
-							"splits": position["timing"]["bestSplits"],
-						},
-						"drivers": {},
-					}
-					if len(position["car"]["drivers"]) > 0:
-						idx = 0
-						for driver in position["car"]["drivers"]:
-							car["drivers"][idx] = {
-								"playerId": driver["playerId"],
-								"firstName": driver["firstName"],
-								"lastName": driver["lastName"],
-								"shortName": driver["shortName"],
-								"laps": [],
-								"time": 0,
-								"best": {
-									"fastest": False,
-									"lap": 0,
-									"time": 0,
-									"splits": [
-										0,
-										0,
-										0
-									]
-								},
-								"penalties": []
-							}
-							drivers.append({
-								"carId": carId,
-								"idx": idx,
-							})
-							idx += 1
-					cars[carId] = car
-					positions.append({
-						"carId": carId,
-						"laps": position["timing"]["lapCount"] - 1, # -1 for formation lap
-						"time": position["timing"]["totalTime"],
-					})
-					# update car total time
-					if session_time == 0:
-						session_time = position["timing"]["totalTime"]
-					# update car total laps
-					if session_laps == 0:
-						session_laps = position["timing"]["lapCount"] - 1 # -1 for formation lap
-			if len(data["laps"]):
-				#lap = 0
-				carLaps = {}
-				for l in data["laps"]:
-					carId = l["carId"]
-					if carId not in carLaps:
-						carLaps[carId] = 0
-					driverIdx = l["driverIndex"]
-					if carId in cars:
-						carLaps[carId] += 1
-						car = cars[carId]
-						car["laps"] += 1
-						car["time"] += l["laptime"]
-						if driverIdx in car["drivers"]:
-							driver = car["drivers"][driverIdx]
-							#driver["laps"] += 1
-							driver["laps"].append(l["laptime"])
-							if l["isValidForBest"] and\
-								(
-									driver["best"]["time"] == 0 or
-									l["laptime"] < driver["best"]["time"]
-								):
-								driver["best"]["lap"] = carLaps[carId]
-								driver["best"]["time"] = l["laptime"]
-								if fastest["time"] == l["laptime"]:
-									fastest["car"] = carId
-									fastest["driver"] = driverIdx
-									fastest["lap"] = carLaps[carId] - 1
-									driver["best"]["fastest"] = True
-							for i, s in enumerate(l["splits"]):
-								if driver["best"]["splits"][i] == 0:
-									driver["best"]["splits"][i] = s
-								elif s < driver["best"]["splits"][i]:
-									driver["best"]["splits"][i] = s
-							driver["time"] += l["laptime"]
-					#lap += 1
-			if len(data["penalties"]):
-				for p in data["penalties"]:
-					carId = p["carId"]
-					driverIdx = p["driverIndex"]
-					if carId in cars:
-						car = cars[carId]
-						if driverIdx in car["drivers"]:
-							driver = car["drivers"][driverIdx]
-							driver["penalties"].append({
-								"reason": p["reason"],
-								"penalty": p["penalty"],
-								"value": p["penaltyValue"],
-								"violated": p["violationInLap"],
-								"cleared": p["clearedInLap"],
-							})
-			if len(data["post_race_penalties"]):
-				for p in data["post_race_penalties"]:
-					carId = p["carId"]
-					driverIdx = p["driverIndex"]
-					if carId in cars:
-						car = cars[carId]
-						if driverIdx in car["drivers"]:
-							driver = car["drivers"][driverIdx]
-							driver["penalties"].append({
-								"reason": p["reason"],
-								"penalty": p["penalty"],
-								"value": p["penaltyValue"],
-								"violated": p["violationInLap"],
-								"cleared": p["clearedInLap"],
-							})
-			return {
-				"server": data["serverName"],
-				"track": data["trackName"],
-				"type": data["sessionType"],
-				"typeName": {
-					"FP": "Free Practice",
-					"Q": "Qualifying",
-					"R": "Race",
-				}.get(data["sessionType"], "Unknown"),
-				"wet": data["sessionResult"]["isWetSession"],
-				"session": {
-					"laps": session_laps,
-					"time": session_time,
-				},
-				"cars": cars,
-				"drivers": drivers,
-				"positions": positions,
-				"fastest": fastest,
-				"laps": data["laps"],
-			}
+			print(f"loadResult: {file}")
+			#converted_file = Dest.suffix(file, ".result")
+			#if Dest.exists(converted_file):
+			#	print(f"converted_file: {converted_file}")
+			#	return ACC.load(converted_file)
+			if not Dest.exists(file):
+				raise ValueError(f"File not found: {file}")
+			return ACC.loadSessionResult(file)
 		except Exception as e:
 			self.bot.debug(e)
 			raise e
 
-	async def handle_result(self, ctx:commands.Context, file:str, date:datetime) -> None:
+	async def handleResult(self, ctx:commands.Context, data:dict, date:datetime) -> None:
 		try:
-			print(f"handle_result: {file}")
-			data = self.load_result(file)
-			if data is None:
-				raise ValueError("Error loading result.")
-			if len(data['laps']) > 0:
-				# save the result
-				Dest.json.save(
-					Dest.join(
-						self.bot.get_temp('results'),
-						Dest.suffix(file, '.result')
-					),
-					data
-				)
-			track = ACC.fullTrackName(data["track"])
-			if len(data["laps"]) == 0:
+			# read the result file: tmp/results/240309_220433_R.result.json
+			session = data.get("session", {})
+			cars = data.get("cars", {})
+			laps = data.get("laps", {})
+			positions = data.get("positions", {})
+			if len(data.get("laps")) == 0:
 				embed = self.bot.embed(
 					ctx = ctx,
-					title = f"{data['server']} · {date.strftime('%d %B %Y')} ***` {data['typeName']} `***",
-					description = f"**{track}** · **No laps**",
+					title = f"{session['name']} · {date.strftime('%d %B %Y')}  ***` {session['type']['name']} `***",
+					description = f"**{session['track']['name']}** · **No laps**",
 					bot = True,
 				)
 				embed.set_footer(
 					text = f"Powered by {self.bot.__POWERED_BY__}",
 				)
+				Dest.remove(file)
 				return await ctx.send(
 					embed = embed
 				)
 			embed = self.bot.embed(
 				ctx = ctx,
-				title = f"{data['server']} · {date.strftime('%d %B %Y')}   ***` {data['typeName']} `***",
-				description = f"**{track}** · **{data['session']['laps']} laps** in **{ACC.convert_time(data['session']['time'])}** {' · ( 🌧️ )' if data['wet'] == 1 else ''}",
+				title = f"{session['name']} · {date.strftime('%d %B %Y')}   ***` {session['type']['name']} `***",
+				description = f"**{session['track']['name']}** · **{session['laps']} laps** in **{ACC.convertTime(session['time'])}** {' · ( 🌧️ )' if session['wet'] == 1 else ''}",
 				bot = True,
 			)
 			place = 1
-			driver_penalties = []
 			# race
-			if data["type"] == "R":
-				for position in data["positions"]:
-					car = data["cars"][position["carId"]]
+			if session["type"]["tag"] == "R":
+				for position in positions:
+					car = cars.get(position["carId"])
 					drivers = []
-					for driver in car["drivers"].values():
+					for driver in car["drivers"]:
 						drivers.append(
 							f"**{ACC.driverName(driver)}**"
 						)
-						if len(driver["penalties"]):
-							driver_penalties.append(
-								{
-									"car": {
-										"number": car["number"],
-										"car": car["car"],
-										"group": car["group"],
-										"team": car["team"],
-									},
-									"driver": {
-										"playerId": driver["playerId"],
-										"firstName": driver["firstName"],
-										"lastName": driver["lastName"],
-										"shortName": driver["shortName"],
-									},
-									"penalties": driver["penalties"],
-								}
-							)
 					drivers = ", ".join(drivers)
 					inline = (place > 3)
 					if place == 1:
 						leader = position
 						embed.add_field(
-							name = f"{ACC.place(place, True)} #{car['number']} {ACC.car(car['car'])[0]} {car['team']}",
-							value = f"{drivers}   {ACC.convert_time(position['time'])}",
+							name = f"{ACC.place(place, True)} #{car['number']} {car['model']['name']} {car['team']}",
+							value = f"{drivers}   {ACC.convertTime(position['timing']['time'])}",
 							inline = inline,
 						)
 					else:
-						if position["laps"] < leader["laps"]:
-							delta = leader["laps"] - position["laps"]
+						if position["timing"]["laps"] < leader["timing"]["laps"]:
+							delta = leader["timing"]["laps"] - position["timing"]["laps"]
 							embed.add_field(
-								name = f"{ACC.place(place, True)} #{car['number']} {ACC.car(car['car'])[0]}",
-								#value = f"{drivers} - {self.convert_time(position['time'])} (+{delta} laps)",
+								name = f"{ACC.place(place, True)} #{car['number']} {car['model']['name']}",
+								#value = f"{drivers} - {self.convertTime(position['time'])} (+{delta} laps)",
 								value = f"{drivers}   +{delta} lap{delta > 1 and 's' or ''}",
 								inline = inline,
 							)
 						else:
-							delta = position["time"] - leader["time"]
+							delta = position["timing"]["time"] - leader["timing"]["time"]
 							embed.add_field(
-								name = f"{ACC.place(place, True)} #{car['number']} {ACC.car(car['car'])[0]}",
-								value = f"{drivers} · {ACC.convert_time(position['time'])} · (+{ACC.convert_time(delta)})",
+								name = f"{ACC.place(place, True)} #{car['number']} {car['model']['name']}",
+								value = f"{drivers} · {ACC.convertTime(position['timing']['time'])} · (+{ACC.convertTime(delta)})",
 								inline = inline,
 							)
 					place += 1
 			# free practice or qualifying
-			if data["type"] in ["FP", "Q"]:
+			elif session["type"]["tag"] in ["FP", "Q"]:
 				# show fastest lap and most laps
-				for position in data["positions"]:
-					car = data["cars"][position["carId"]]
+				for position in positions:
+					inline = True #(place > 3)
+					car = cars.get(position["carId"])
 					drivers = []
-					best_time = 0
-					best_time_str = "N/A"
-					for driver in car["drivers"].values():
-						#print(f"driver: {driver['best']['time']}")
-						# find the driver with the fastest best lap
-						if best_time == 0:
-							best_time = driver["best"]["time"]
-							best_lap = driver["best"]["lap"]
-						if driver["best"]["time"] < best_time:
-							best_time = driver["best"]["time"]
-							best_lap = driver["best"]["lap"]
-							fastestDriver = driver
+					best_lap = 0
+					best_time = position["timing"]["best"]["lap"]
+					best_driver = None
+					for _lap, lap in enumerate(laps):
+						for _car in lap:
+							if _car["carId"] == position["carId"]:
+								if _car["time"] == best_time:
+									best_lap = _lap + 1
+									best_driver = car["drivers"][_car["driverId"]]
+									# break both loops
+									break
+						else:
+							continue
+						break
+					for driver in car["drivers"]:
 						drivers.append(
 							f"**{ACC.driverName(driver)}**"
 						)
 					drivers = ", ".join(drivers)
-					if car["laps"] == 0:
-						best_time_str = "N/A"
+					if position["timing"]["laps"] == 0:
+						embed.add_field(
+							name = f"{ACC.place(place)} #{car['number']} {car['model']['name']} {car['team']}",
+							value = f"{drivers} · no time set · (0 laps)",
+							inline = inline,
+						)
 					else:
-						best_time_str = ACC.convert_time(best_time)
-					inline = True
-					embed.add_field(
-						name = f"{ACC.place(place)} #{car['number']} {ACC.car(car['car'])[0]} {car['team']}",
-						value = f"{drivers} · {best_time_str} on lap {best_lap} · ({position['laps']} lap{position['laps'] > 1 and 's' or ''})",
-						inline = inline,
-					)
+						best_driver = f"**{ACC.driverName(best_driver)}**"
+						best_time = ACC.convertTime(best_time)
+						embed.add_field(
+							name = f"{ACC.place(place)} #{car['number']} {car['model']['name']} {car['team']}",
+							value = f"{best_driver} · {best_time} on lap {best_lap} · ({position['timing']['laps']} lap{position['timing']['laps'] > 1 and 's' or ''})",
+							inline = inline,
+						)
 					place += 1
 			# show fastest lap
-
-			fastestDriver = f"**{ACC.driverName(data['cars'][data['fastest']['car']]['drivers'][data['fastest']['driver']])}**"
+			bestLap = session['best']['lap']
+			bestCar = cars.get(bestLap['carId'])
+			bestDriver = f"**{ACC.driverName(bestCar.get('drivers')[bestLap['driverId']])}**"
 			embed.add_field(
 				name = "Fastest Lap",
-				value = f"**🛞 #{data['cars'][data['fastest']['car']]['number']}** {fastestDriver}"\
-						f" · {ACC.convert_time(data['fastest']['time'])} on lap {data['fastest']['lap']}",
+				value = f"**🛞 #{bestCar['number']}** {bestDriver}"\
+						f" · {ACC.convertTime(bestLap['time'])} on lap {bestLap['lap']}",
 				inline = False,
 			)
 			# show penalties
-			if len(driver_penalties):
+			_types = (
+				"race",
+				"post",
+			)
+			for _type in _types:
+				penalties = data.get("penalties").get(_type, {})
+				if len(penalties) == 0:
+					continue
 				embed.add_field(
 					name = "\u200b",
-					value = "**Penalties**",
+					value = f"**Penalties**" if _type == "race" else f"**Post Race Penalties**",
 					inline = False,
 				)
-				for pen in driver_penalties:
-					for penalty in pen["penalties"]:
-						if penalty["penalty"] == "None":
-							continue
-						if penalty["violated"] == 0:
-							continue
-						cleared = f"Cleared on lap {penalty['cleared']}" if penalty["cleared"] >= penalty["violated"] else "**Not Cleared**"
+				for carId, _penalties in penalties.items():
+					car = cars.get(carId)
+					for penalty in _penalties:
+						#if penalty['violated'] == 0:
+						#	continue
+						# get the lap from the penalty["violated"] (which is the lap the penalty was given)
+						lap = laps[penalty["violated"]]
+						for _car in lap:
+							if _car["carId"] == carId:
+								# get the driver from the carId and the driverId
+								driver = cars.get(carId).get("drivers")[
+									_car["driverId"]
+								]
+								break
 						embed.add_field(
-							name = f"⚠️ #{pen['car']['number']} {ACC.car(pen['car']['car'])[0]} · **{ACC.driverName(pen['driver'])}**",
-							value = f"Lap {penalty['violated']} · {penalty['reason']} · {penalty['penalty']} · {cleared}",
+							name = f"⚠️ #{car['number']} {car['model']['name']} · **{ACC.driverName(driver)}**",
+							value = f"Lap {penalty['violated']} · {penalty['reason']} · {penalty['penalty']} · {penalty['value']} · {'cleared' if penalty['cleared'] > 0 else 'not cleared'}",
 							inline = False,
 						)
 			embed.set_footer(
@@ -384,52 +269,44 @@ class ACCRace(commands.Cog, name="Race Results"):
 		except Exception as e:
 			raise e
 
-	async def handle_request(self, ctx:commands.Context, session:str, date:str = None, time:str = None) -> None:
+	async def handleRequest(self, ctx:commands.Context, session:str, date:datetime = None, time:datetime = None, sync:bool = False) -> None:
 		try:
-			print(f"handle_request: {session} {date} {time}")
+			print(f"handleRequest: {session} {date} {time}")
 			async with ctx.typing():
-				config = self.bot.get_config(ctx.guild, "connect", "acc")
+				config = self.bot.getConfig(ctx.guild, "connect", "acc")
 				latest = False
 				if config is None:
 					raise ValueError("ACC Dedicated Server configuration not found.")
-				if session not in ["FP", "Q", "R"]:
+				if session.lower() not in ["fp", "q", "r"]:
 					raise ValueError("Session must be one of **FP**, **Q**, **R**.")
-				if date is None or date == "" or date.lower() == "latest":
-					print("latest")
-					date = ACC.parse_date_for_regexp(date)
-					date_str = "latest"
-					time = ACC.parse_time_for_regexp(time)
-					time_str = "latest"
-					latest = True
-				elif date == "*":
-					print("list")
-					date = r"\d{6}"
-					date_str = "list"
-					time = r"\d{6}"
-					time_str = "list"
-					latest = False
+				temp = self.bot.getTemp("results")
+				if sync:
+					await self.sync_results(self.bot.getConfig(ctx.guild, "connect", "acc"))
+
+				if session.lower() == "r":
+					file = Dest.join(
+						temp,
+						ACC.sessionRaceFile(temp, date, time)
+					)
+				elif session.lower() == "q":
+					file = Dest.join(
+						temp,
+						ACC.sessionQualifyingFile(temp, date, time)
+					)
+				elif session.lower() == "fp":
+					file = Dest.join(
+						temp,
+						ACC.sessionFreePracticeFile(temp, date, time)
+					)
 				else:
-					print(f"not latest")
-					date = ACC.parse_date_for_regexp(date)
-					date_str = datetime.strptime(date, "%y%m%d").strftime("%d %B %Y")
-					if time is None or time == "latest":
-						time = r"\d{6}"
-						time_str = "latest"
-						latest = True
-					elif time == '*':
-						time = r"\d{6}"
-						time_str = "list"
-						latest = False
-					else:
-						time = ACC.parse_time_for_regexp(time)
-						time_str = time
-				pattern = f"{date}_{time}_{session}.json"
-				results = self.get_results(config, pattern, latest)
-				if results is None:
+					raise ValueError("Invalid session.")
+				print(f"file: {file}")
+				data = ACC.loadSessionResult(file)
+				if len(data.get("laps", [])) == 0:
 					embed = self.bot.embed(
 						ctx = ctx,
 						title = "Error",
-						description = "No results found.",
+						description = "No result found.",
 						bot = True,
 					)
 					embed.set_footer(
@@ -438,59 +315,93 @@ class ACCRace(commands.Cog, name="Race Results"):
 					return await ctx.send(
 						embed = embed
 					)
-				if len(results) == 0:
-					embed = self.bot.embed(
-						ctx = ctx,
-						title = "Error",
-						description = f"No results found for **{session}** on **{date_str}** at **{time_str}**.",
-						bot = True,
-					)
-					embed.set_footer(
-						text = f"Powered by {self.bot.__POWERED_BY__}",
-					)
-					return await ctx.send(
-						embed = embed
-					)
-				if len(results) > 1:
-					dates = {}
-					for result in results:
-						date, time, _ = Dest.filename(result).split("_")
-						# build the dates dictionary and add the time
-						if date not in dates:
-							dates[date] = []
-						dates[date].append(time)
-					embed = self.bot.embed(
-						ctx = ctx,
-						title = f"Multiple results found for **{session}** on **{date_str}** at **{time_str}**.",
-						description = f"Please select one of the following date(s) & times",
-						bot = True,
-					)
-					if len(dates) > 10:
-						dates = dict(list(dates.items())[:10])
-					for date, times in dates.items():
-						embed.add_field(
-							name = f"{date}",
-							value = f"{' '.join(times)}",
-							inline = False,
-						)
-					embed.set_footer(
-						text = f"Powered by {self.bot.__POWERED_BY__}",
-					)
-					return await ctx.send(
-						embed = embed
-					)
+
 				# extract date & time from filename and convert to datetime yymmdd_hhmmss
-				date, time, _ = Dest.filename(results[0]).split("_")
+				date, time, _ = Dest.filename(file).split("_")
 				date = datetime.strptime(f"{date}{time}", "%y%m%d%H%M%S")
 				#print(f"date: {date}")
-				return await self.handle_result(
+				return await self.handleResult(
 					ctx = ctx,
-					file = results[0],
+					data = data,
 					date = date,
 				)
 		except ValueError as e:
 			traceback.print_exc()
 			raise e
+		except Exception as e:
+			traceback.print_exc()
+			raise e
+
+	async def handleList(self, ctx:commands.Context, session:str, date:str, time:str, sync:bool = False) -> None:
+		try:
+			if session.lower() not in ["fp", "q", "r"]:
+				raise ValueError("Session must be one of **FP**, **Q**, **R**.")
+			if date == "*":
+				# show ALL
+				date = None
+			else:
+				date = Human.date(date)
+				if time == "*":
+					# show ALL of the day
+					time = None
+			files = ACC.sessionTimestampFiles(
+				self.bot.getTemp("results"),
+			)
+			if session.lower() == "r":
+				files = files.get("r")
+			elif session.lower() == "q":
+				files = files.get("q")
+			elif session.lower() == "fp":
+				files = files.get("fp")
+			if len(files) == 0:
+				embed = self.bot.embed(
+					ctx = ctx,
+					title = "Results",
+					description = "No results found.",
+					bot = True,
+				)
+				embed.set_footer(
+					text = f"Powered by {self.bot.__POWERED_BY__}",
+				)
+				return await ctx.send(
+					embed = embed
+				)
+			# sort reverse the files list
+			_dates = {}
+			results = 0
+			for timestamp in sorted(files.keys(), reverse=True):
+				_date = datetime.fromtimestamp(timestamp)
+				if date is not None:
+					if _date.date() != date.date():
+						continue
+				if _date.strftime("%y%m%d") not in _dates:
+					_dates[_date.strftime("%y%m%d")] = []
+				_dates[_date.strftime("%y%m%d")].append(_date.strftime("%H%M%S"))
+				results += 1
+			embed = self.bot.embed(
+				ctx = ctx,
+				title = "Results",
+				description = f"{results} results found.",
+				bot = True,
+			)
+			embed.set_footer(
+				text = f"Powered by {self.bot.__POWERED_BY__}",
+			)
+			limit = 15
+			for _date, _time in _dates.items():
+				if limit == 0:
+					break
+				embed.add_field(
+					name = f"{_date}",
+					# separate the times with a newline
+					value = "\n".join(_time),
+					inline = True,
+				)
+				limit -= 1
+			return await ctx.send(
+				embed = embed
+			)
+
 		except Exception as e:
 			traceback.print_exc()
 			raise e
@@ -506,7 +417,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		]
 	)
 	@commands.guild_only()
-	async def race(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
+	async def race(self, ctx:commands.Context, date:str = None, time:str = None, sync:bool = False) -> None:
 		"""
 		Get the race results of the date
 		```
@@ -516,12 +427,21 @@ class ACCRace(commands.Cog, name="Race Results"):
 		```
 		"""
 		try:
-			print(f"race")
-			await self.handle_request(
+			if date == '*' or time == '*':
+				return await self.handleList(
+					ctx = ctx,
+					session = "r",
+					date = date,
+					time = time,
+					sync = sync,
+				)
+			print(f"race: {date} {time} {sync}")
+			await self.handleRequest(
 				ctx = ctx,
-				session = "R",
-				date = date,
-				time = time,
+				session = "r",
+				date = ACC.parseDate(date),
+				time = ACC.parseTime(time),
+				sync = Human.parseBool(sync),
 			)
 		except ValueError as e:
 			await self.bot.warn(
@@ -548,7 +468,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		],
 	)
 	@commands.guild_only()
-	async def qualify(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
+	async def qualify(self, ctx:commands.Context, date:str = None, time:str = None, sync:bool = False) -> None:
 		"""
 		Get the qualifying results of the date
 		```
@@ -558,12 +478,21 @@ class ACCRace(commands.Cog, name="Race Results"):
 		```
 		"""
 		try:
-			print(f"qualify")
-			await self.handle_request(
+			if date == '*' or time == '*':
+				return await self.handleList(
+					ctx = ctx,
+					session = "q",
+					date = date,
+					time = time,
+					sync = sync,
+				)
+			print(f"qualify: {date} {time} {sync}")
+			await self.handleRequest(
 				ctx = ctx,
-				session = "Q",
-				date = date,
-				time = time,
+				session = "r",
+				date = ACC.parseDate(date),
+				time = ACC.parseTime(time),
+				sync = Human.parseBool(sync),
 			)
 		except ValueError as e:
 			await self.bot.warn(
@@ -571,6 +500,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 				ctx = ctx,
 			)
 		except Exception as e:
+			traceback.print_exc()
 			await self.bot.error(
 				e,
 				ctx = ctx,
@@ -589,7 +519,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		],
 	)
 	@commands.guild_only()
-	async def practice(self, ctx:commands.Context, date:str = None, time:str = None) -> None:
+	async def practice(self, ctx:commands.Context, date:str = None, time:str = None, sync:bool = False) -> None:
 		"""
 		Get the practice results of the date
 		```
@@ -599,12 +529,21 @@ class ACCRace(commands.Cog, name="Race Results"):
 		```
 		"""
 		try:
-			print(f"practice")
-			await self.handle_request(
+			if date == '*' or time == '*':
+				return await self.handleList(
+					ctx = ctx,
+					session = "fp",
+					date = date,
+					time = time,
+					sync = sync,
+				)
+			print(f"practice: {date} {time} {sync}")
+			await self.handleRequest(
 				ctx = ctx,
-				session = "FP",
-				date = date,
-				time = time,
+				session = "fp",
+				date = ACC.parseDate(date),
+				time = ACC.parseTime(time),
+				sync = Human.parseBool(sync),
 			)
 		except ValueError as e:
 			await self.bot.warn(
@@ -612,6 +551,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 				ctx = ctx,
 			)
 		except Exception as e:
+			traceback.print_exc()
 			await self.bot.error(
 				e,
 				ctx = ctx,
@@ -625,11 +565,11 @@ class ACCRace(commands.Cog, name="Race Results"):
 	@commands.guild_only()
 	@commands.is_owner()
 	@commands.has_permissions(moderate_members=True)
-	async def cleanupemptyresults(self, ctx:commands.Context) -> None:
+	async def cleanupEmptyResults(self, ctx:commands.Context) -> None:
 		"""
 		Clean up the FTP from empty result files
 		```
-		{ctx.prefix}clean
+		{ctx.prefix}cleanupemptyresults
 		```
 		"""
 		try:
@@ -640,7 +580,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 			self.ftp.connect(config['host'], config['port'])
 			self.ftp.login(config['user'], config['password'])
 			self.ftp.cwd(config['directory'])
-			storage = self.bot.get_temp("results_backup")
+			storage = self.bot.getTemp("results_backup")
 			files = []
 			self.ftp.retrlines("LIST", files.append)
 			filenames = [line.split()[-1] for line in files]
@@ -668,7 +608,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 			self.ftp.quit()
 			embed = self.bot.embed(
 				ctx = ctx,
-				title = "Cleanup",
+				title = "Cleanup Empty Results",
 				description = f"{len(delete_files)} empty results have been removed.",
 				bot = True,
 			)
@@ -689,9 +629,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 				ctx = ctx,
 			)
 
-
-
-async def setup(bot:commands.Bot) -> None:
+async def setup(bot:bang.Bot) -> None:
 	try:
 		await bot.add_cog(
 			ACCRace(

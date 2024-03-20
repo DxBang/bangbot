@@ -1,13 +1,15 @@
+import bang
 import discord
 from discord.ext import commands
 import traceback
 from bang.acc import ACC
+from bang.human import Human
 
 class Event(commands.Cog, name="Event Management"):
 	__slots__ = (
 		"bot",
 	)
-	def __init__(self, bot:commands.Bot) -> None:
+	def __init__(self, bot:bang.Bot) -> None:
 		try:
 			self.bot = bot
 		except Exception as e:
@@ -80,14 +82,23 @@ class Event(commands.Cog, name="Event Management"):
 			)
 			mention = None
 			mentions = []
-			roles = self.bot.get_config(ctx.guild, "event", "roles")
+			roles = self.bot.getConfig(ctx.guild, "event", "roles")
 			if isinstance(roles, list) and len(roles) > 0:
 				mentions.extend([role.mention for role in ctx.guild.roles if role.id in roles])
-			label = self.bot.get_config(ctx.guild, "label", "event")
-			config = self.bot.get_config(ctx.guild, "event")
+			label = self.bot.getConfig(ctx.guild, "label", "event")
+			config = self.bot.getConfig(ctx.guild, "event")
 			if date is not None and time is not None:
-				tz = self.bot.get_config(ctx.guild, "timezone")
-				epoch = ACC.dateToEpoch(date, time, tz)
+				epoch = ACC.dateToEpoch(
+					date,
+					time,
+					self.bot.getConfig(ctx.guild, "timezone")
+				)
+			if date is not None and time is None:
+				epoch = ACC.dateToEpoch(
+					date,
+					time,
+					self.bot.getConfig(ctx.guild, "timezone")
+				)
 			if epoch is not None:
 				embed.add_field(
 					name = f"{label['date']['emoji']} {label['date']['name']}",
@@ -135,7 +146,7 @@ class Event(commands.Cog, name="Event Management"):
 						url = ctx.message.attachments[0].url
 					)
 				if config["attachment"]["download"] and config["attachment"]["image"]:
-					file = await self.bot.download_attachment(ctx.message.attachments[0])
+					file = await self.bot.downloadAttachment(ctx.message.attachments[0])
 					files = [file]
 					embed.set_image(
 						url = "attachment://" + file.filename
@@ -163,7 +174,7 @@ class Event(commands.Cog, name="Event Management"):
 		"""Build a list of embed fields from an event sign up."""
 		try:
 			print(f"build_embed_fields: {embed}, {member}, {action}, {emoji}")
-			label = self.bot.get_config(member.guild, "label", "event")
+			label = self.bot.getConfig(member.guild, "label", "event")
 			first = 0
 			# check if the embed has date, time, and countdown fields
 			if label['date']['emoji'] in embed.fields[0].name and\
@@ -312,7 +323,7 @@ class Event(commands.Cog, name="Event Management"):
 				return
 			if len(message.embeds[0].fields) < 3:
 				return
-			roles = self.bot.get_config(message.guild, "event", "roles")
+			roles = self.bot.getConfig(message.guild, "event", "roles")
 			# roles format: [729023577977782322, 729023577977782324] or boolean True|False
 			if isinstance(roles, list) and len(roles) > 0:
 				found = False
@@ -404,7 +415,7 @@ class Event(commands.Cog, name="Event Management"):
 	async def epoch(self, ctx:commands.Context, date:str, time:str) -> None:
 		"/""Convert a date to epoch."/""
 		try:
-			tz = self.bot.get_config(ctx.guild, "timezone")
+			tz = self.bot.getConfig(ctx.guild, "timezone")
 			epoch = ACC.dateToEpoch(date, time, tz)
 			await ctx.send(
 				f"<t:{epoch}:R>",
@@ -417,7 +428,7 @@ class Event(commands.Cog, name="Event Management"):
 	"""
 
 
-async def setup(bot:commands.Bot) -> None:
+async def setup(bot:bang.Bot) -> None:
 	try:
 		await bot.add_cog(
 			Event(

@@ -1,2 +1,2 @@
 __all__ = ["bot"]
-from .bot import Bang
+from .bot import Bot

@@ -1,3 +1,4 @@
+import bang
 import aiomysql
 import asyncio
 import json
@@ -17,7 +18,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 	__slots__ = (
 		"bot"
 	)
-	def __init__(self, bot:commands.Bot) -> None:
+	def __init__(self, bot:bang.Bot) -> None:
 		try:
 			self.bot = bot
 		except Exception as e:
@@ -705,7 +706,7 @@ class Systems(commands.Cog, name="Bang Systems"):
 
 
 
-async def setup(bot:commands.Bot) -> None:
+async def setup(bot:bang.Bot) -> None:
 	try:
 		await bot.add_cog(
 			Systems(

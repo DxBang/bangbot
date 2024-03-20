@@ -1,3 +1,4 @@
+import bang
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -12,7 +13,7 @@ class DriverInformation(discord.ui.Modal):
 	# get the driver number and gamertag and rename the user nickname to #number gamertag
 	def __init__(self, bot:commands.Bot, interaction:discord.Interaction) -> None:
 		super().__init__(title="Driver Information")
-		label = bot.get_config(interaction.guild, "label", "driver")
+		label = bot.getConfig(interaction.guild, "label", "driver")
 		self.number = discord.ui.TextInput(
 			label = label["number"]["name"],
 		placeholder = label["number"]["description"],
@@ -263,7 +264,7 @@ class Driver(commands.Cog, name="Driver"):
 
 
 
-async def setup(bot:commands.Bot) -> None:
+async def setup(bot:bang.Bot) -> None:
 	try:
 		await bot.add_cog(
 			Driver(

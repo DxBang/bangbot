@@ -1,3 +1,4 @@
+import bang
 import discord
 from discord.ext import commands
 import traceback
@@ -7,7 +8,8 @@ import pandas as pd
 import base64
 from bang.acc import ACC
 from bang.dest import Dest
-from bang.svg import SVG
+from bang.human import Human
+from datetime import datetime
 
 
 class Graph(commands.Cog, name="Graph"):
@@ -15,14 +17,82 @@ class Graph(commands.Cog, name="Graph"):
 		"bot",
 		"ftp",
 	)
-	def __init__(self, bot:commands.Bot) -> None:
+	def __init__(self, bot:bang.Bot) -> None:
 		try:
 			self.bot = bot
 		except Exception as e:
 			raise e
 
-	def parse_graph_input(self, input:str = None) -> tuple[str, str, str, list[int]|None, int|None]:
+	def fig_line_update_defaults(self, fig:px.line, config:dict, race:dict) -> px.line:
+		try:
+			width = max((config['lap_width'] * race['session']['laps']) + 400, config['min_width'])
+			height = config['min_height']
+			fig.update_layout(
+				xaxis = dict(
+					tickmode = "linear",
+					title = dict(
+						font = dict(
+							size = config['label']['size'],
+						)
+					)
+				),
+				yaxis = dict(
+					tickmode = "linear",
+					title = dict(
+						font = dict(
+							size = config['label']['size'],
+						)
+					)
+				),
+				width = width,
+				height = height,
+				title = dict(
+					font = dict(
+						size = config['title']['size'],
+					)
+				),
+				font = dict(
+					size = config['font']['size'],
+				),
+				template = config['template'],
+			)
+			fig.update_traces(
+				line = {
+					'width': 5,
+					'shape': 'spline',
+				}
+			)
+			if config['logo']['source'] != "" and config['logo']['source'] is not None:
+				logo = Dest.file(config['logo']['source'])
+				if Dest.exists(logo):
+					print(f"logo: {logo}")
+					# get mime type
+					mime = Dest.mime(logo)
+					with open(logo, "rb") as f:
+						logo = base64.b64encode(f.read()).decode()
+					fig.add_layout_image(
+						dict(
+							source = f"data:{mime};base64,{logo}",
+							xref = "paper",
+							yref = "paper",
+							x = config['logo']['x'],
+							y = config['logo']['y'],
+							sizex = config['logo']['sizex'],
+							sizey = config['logo']['sizey'],
+							xanchor = config['logo']['xanchor'],
+							yanchor = config['logo']['yanchor'],
+							opacity = config['logo']['opacity'],
+							layer = "below",
+						)
+					)
+			return fig
+		except Exception as e:
+			raise e
+
+
+	def parse_graph_input(self, input:str = None) -> tuple[str, str, str, list[int], list[int]]:
 		# check if input is empty
+		return ACC.parseRaceInput(input)
 		if input is None:
 			input = "latest"
 		# split input per space
@@ -30,31 +100,22 @@ class Graph(commands.Cog, name="Graph"):
 		# check if input is a date
 		date:str = None
 		time:str = None
-		session:str = "(R|Q|FP)"
-		top:list[int] = None
-		number:int|None = None
+		heat:str = "R"
+		top:list[int] = []
+		numbers:list[int] = []
 		for input in inputs:
 			print(f"input: {input}")
-			if date is None:
-				date = ACC.parse_date_for_regexp(input, False)
-				print(f"	date: {date}")
-				if date is not None:
-					continue
-			if date is not None and time is None:
-				time = ACC.parse_time_for_regexp(input, False)
-				print(f"	time: {time}")
-				if time is not None:
-					continue
 			if input.lower() in ["r", "q", "fp", "f"]:
-				print(f"	session: {input}")
+				print(f"	heat: {input}")
 				if input.lower() == "f":
-					session = "FP"
+					heat = "FP"
 				else:
-					session = input.upper()
+					heat = input.upper()
 				continue
 			if input.startswith("#"):
 				print(f"	number: {input}")
-				number = int(input.replace("#", ""))
+				# remove # and split by comma
+				numbers = [int(number) for number in input[1:].split(",")]
 				continue
 			if re.match(r"^[0-9]+-[0-9]+$", input):
 				print(f"	top: {input}")
@@ -64,189 +125,232 @@ class Graph(commands.Cog, name="Graph"):
 				if int(top[0]) > int(top[1]):
 					raise ValueError("Invalid range. The first number must be lower than the second.")
 				continue
+			if date is None:
+				try:
+					date = Human.date(input)
+					print(f"	date: {date}")
+					if date is not None:
+						continue
+				except Exception as e:
+					print(f"Date Error: {e}")
+			if date is not None and time is None:
+				try:
+					time = Human.time(input)
+					print(f"	time: {time}")
+					if time is not None:
+						continue
+				except Exception as e:
+					print(f"Time Error: {e}")
 		if date is None:
-			date = "\d{6}"
+			date = Human.date("latest")
 			print(f"date: {date}")
 		if time is None:
-			time = "\d{6}"
+			time = Human.time("latest")
 			print(f"time: {time}")
 			# check if input is a car number
-		if number is not None:
-			top = None
-		return date, time, session, top, number
+		return date, time, heat, top, numbers
 
 	@commands.command(
 		description = "Show a graph of drivers lap times",
 		usage = "laptime [input with date and time or latest and maybe type of the race and #car number or 1-10 for top 10]",
-		hidden = False,
+		hidden = True,
 		aliases = [
+			"lap",
 			"laptime",
 		]
 	)
 	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
 	async def laptimes(self, ctx:commands.Context, *, input:str = None) -> None:
-		"""
-		Show a graph of drivers lap times
-		```
-		{ctx.prefix}laptime 241231 235959 r
-		{ctx.prefix}laptime q 241231 235959
-		{ctx.prefix}laptime fp 241231 235959
-		{ctx.prefix}laptime latest
-		{ctx.prefix}laptime latest r 1-10
-		{ctx.prefix}laptime r latest #21
-		{ctx.prefix}laptime 241231 235959 q 5-10
-		{ctx.prefix}laptime 241231 235959 f #21
-		```
-		"""
 		try:
-			print(f"graph")
+			print(f"laptimes")
 			async with ctx.typing():
-				# check if input is a date
-				config = self.bot.get_config(ctx.guild, "graph")
-				label = self.bot.get_config(ctx.guild, "label", "graph")
-				date, time, session, top, number = self.parse_graph_input(input)
-				print(f"\ndate: {date}\ntime: {time}\nsession: {session}\ntop: {top}\nnumber: {number}\n")
-				# get the results from temp result directory
-				temp = self.bot.get_temp("results")
-				regexp = f"^{date}_{time}_{session}\.result\.json$"
-				print(f"regexp: {regexp}")
-				resultFile = Dest.scan(temp, regexp, 'last')
-				if resultFile is None:
-					raise ValueError("No results found. Run the race, qualify or practice command first.")
+				date, time, heat, top, numbers = ACC.parseRaceInput(input)
+				print(f"positions")
+				print(f"\tdate: {type(date)} {date}")
+				print(f"\ttime: {type(time)} {time}")
+				print(f"\theat: {type(heat)} {heat}")
+				print(f"\ttop: {type(top)} {top}")
+				print(f"\tnumber: {type(numbers)} {numbers}")
+
+				temp = self.bot.getTemp("results")
+				session = ACC.session(
+					temp,
+					date,
+					time,
+					free_practices=0,
+				)
+				if session is None:
+					raise ValueError("No results found for the given date (and time).")
+				dt = session.get("info", {}).get("datetime", None)
 				# get date and time and session from filename: 240309_220433_R.json.result.json
-				filename = Dest.filename(resultFile)
-				print(f"filename: {filename}")
-				date, time, session = filename.split(".")[0].split("_")
-				print(f"date: {date}\ntime: {time}\nsession: {session}")
-				_top = f"{top[0]}-{top[1]}" if top is not None else "all"
-				_number = f"{number}" if number is not None else "all"
-				jsonFile = f"{date}_{time}_{session}_{_top}_{_number}.json"
-				print(f"jsonFile: {jsonFile}")
-				pngFile = f"{date}_{time}_{session}_{_top}_{_number}.laptimes.png"
+				file = f"{dt.strftime('%y%m%d')}_{dt.strftime('%H%M%S')}_{heat}.result.json"
+				print(f"file: {file}")
+				pngFile = Dest.extension(
+					Dest.suffix(
+						Dest.filename(file),
+						".laptimes",
+					), 'png'
+				)
 				print(f"pngFile: {pngFile}")
 				# check if png file exists
-
+				"""
 				if Dest.exists(Dest.join(temp, pngFile)):
 					return await ctx.send(
 						file=discord.File(
 							Dest.join(temp, pngFile)
 						)
 					)
-
-				# load the result sa json
-				result = Dest.json.load(resultFile, True)
-				if len(result['laps']) == 0:
-					# delete the result file
-					Dest.remove(resultFile)
+				"""
+				# prepare the graph
+				label = self.bot.getConfig(ctx.guild, "label", "graph")
+				config = self.bot.getConfig(ctx.guild, "graph")
+				race = session.get("r")
+				#quali = session.get("q")
+				print("session info")
+				Dest.json.print(session.get("info"))
+				# check
+				if len(race.get("laps", [])) == 0:
+					# delete
+					Dest.remove(file)
 					raise ValueError(f"No laps found, no data to graph...")
-				data = []
-				fastest_laptime_ms = 999999999
+				x:list[int] = []
+				y:list[int] = []
+				yTxt:list[str] = []
+				car:list[str] = []
+				cars = race.get("cars", {})
 				slowest_laptime_ms = 0
-				#max_laps = 0
-				slowest_laptimes = {}
-				fastest_laptimes = {}
-				position = 1
-				for car in result['cars'].values():
-					for driver in car['drivers'].values():
-						if number is not None and car['number'] != number:
+				fastest_laptime_ms = 999999999
+				carAvgLaptime:dict = {}
+				showCars:list = []
+				if top is not None and len(top) > 0:
+					print(f"top {top}")
+					for position, _car in enumerate(race["positions"]):
+						if position <= top[1]-1 and position >= top[0]-1:
+							print(f"	{_car['carId']}")
+							showCars.append(_car["carId"])
+				if numbers is not None and len(numbers) > 0:
+					for carId, _car in cars.items():
+						if _car["number"] in numbers:
+							showCars.append(carId)
+				if len(showCars) == 0:
+					showCars = list(cars.keys())
+				showCars = list(set(showCars))
+				#print("showCars")
+				#Dest.json.print(showCars)
+
+				# calculate the average laptime for each car and set that to the first lap
+				for carId in showCars:
+					print(f"carId: {carId} as {type(carId)}")
+					lapTimes:list[int] = []
+					for _lap, _cars in enumerate(race["laps"]):
+						if _lap == 0:
 							continue
-						if top is not None and position > top[1]:
-							continue
-						if top is not None and position < top[0]:
-							continue
-						lap = 0
-						for laptime_ms in driver['laps']:
-							if lap == 0:
-								lap += 1
+						for _car in _cars:
+							if _car["carId"] not in showCars:
 								continue
-							laptime = ACC.convert_time(laptime_ms)
-							if slowest_laptime_ms < laptime_ms:
-								slowest_laptime_ms = laptime_ms
-							if fastest_laptime_ms > laptime_ms:
-								fastest_laptime_ms = laptime_ms
-							data.append({
-								"driver": f"#{car['number']} {ACC.driverName(driver)}",
-								"lap": lap,
-								"laps": len(driver['laps']) - 1, # -1 for formation lap
-								"laptime": laptime,
-								"laptime_ms": laptime_ms,
-							})
-							if laptime_ms > slowest_laptimes.get(driver['playerId'], 0):
-								slowest_laptimes[driver['playerId']] = laptime_ms
-							if laptime_ms < fastest_laptimes.get(driver['playerId'], 999999999):
-								fastest_laptimes[driver['playerId']] = laptime_ms
-							lap += 1
-					position += 1
-				# save the figure as json
-				if len(data) == 0:
-					raise ValueError("No data found.")
-				Dest.json.save(
-					Dest.join(temp, jsonFile),
-					data,
-				)
-				wet = "(wet)"
-				df = pd.DataFrame(data)
-				# create a figure and axis
+							if _car["carId"] == carId:
+								lapTimes.append(_car["time"])
+					#print("lapTimes:")
+					#Dest.json.print(lapTimes)
+					carAvgLaptime[carId] = sum(lapTimes) / len(lapTimes)
+				print("carAvgLaptime")
+				Dest.json.print(carAvgLaptime)
+
+				# prepare the data for the graph
+				for _lap, _cars in enumerate(race["laps"]):
+					if _lap == 0:
+						for _car in _cars:
+							team = cars.get(_car["carId"], {})
+							if _car["carId"] not in showCars:
+								continue
+							average = carAvgLaptime[_car["carId"]]
+							x.append(_lap + 1)
+							y.append(average)
+							yTxt.append(ACC.convertTime(average))
+							car.append(
+								f"#{team['number']} {ACC.carTeam(team)}"
+							)
+						continue
+					for _car in _cars:
+						team = cars.get(_car["carId"], {})
+						# check if the carId is in the showCars list
+						if _car["carId"] not in showCars:
+							continue
+						x.append(_lap + 1)
+						y.append(_car["time"])
+						yTxt.append(ACC.convertTime(_car["time"]))
+						car.append(
+							f"#{team['number']} {ACC.carTeam(team)}"
+						)
+						if _car["time"] > slowest_laptime_ms:
+							slowest_laptime_ms = _car["time"]
+						if _car["time"] < fastest_laptime_ms:
+							fastest_laptime_ms = _car["time"]
+
+				# create a dataframe
+				df = pd.DataFrame({
+					"lap": x,
+					"laptime_ms": y,
+					"laptime": yTxt,
+					"car": car,
+				})
 				fig = px.line(
 					df,
 					x = "lap",
 					y = "laptime_ms",
-					line_shape = "spline",
-					color = "driver",
-					title = f"{result['server']} · {ACC.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps {wet if result['wet'] == 1 else ''}",
+					color = "car",
+					title = f"{race['session']['name']} · {race['session']['track']['name']} · {race['session']['type']['name']}"\
+						f" · {race['session']['laps']} laps{' (wet)' if race['session']['wet'] == 1 else ''}"\
+						f" · {session['info']['datetime'].strftime('%m-%d-%y @%H')}",
 					labels = {
-						"laptime_ms": label['laptime'],
+						"laptime_ms": label["laptime"],
 						"lap": label["laps"],
-						"driver": label["drivers"],
+						"car": label["drivers"],
 					},
 					markers = True,
-					template = config['template'],
-					range_x = [1, result['session']['laps']],
 				)
-				width = max(config['lap_width'] * result['session']['laps'] + 400, config['min_width'])
-				height = config['min_height']
-				ytickvals = [fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 10 * i for i in range(11)]
+				self.fig_line_update_defaults(fig, config, race)
+				# add a gray box on the first lap
+				fig.add_vrect(
+					x0 = min(x),
+					x1 = min(x) + 1,
+					fillcolor = "rgb(64,64,64)",
+					opacity = 0.2,
+					layer = "below",
+					line_width = 0,
+				),
+				fig.add_annotation(
+					x = min(x) + 0.5,
+					# get the middle of the y axis
+					#y = (fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 2) + 4000,
+					y = (fastest_laptime_ms + slowest_laptime_ms) / 2,
+					text = label["bug_start_laptimes"],
+					showarrow = False,
+					textangle = -90,
+					font = dict(
+						color = "rgba(96,96,96,0.5)",
+						size = 30
+					),
+				)
+				yTickvals = [fastest_laptime_ms + (slowest_laptime_ms - fastest_laptime_ms) / 10 * i for i in range(11)]
 				fig.update_layout(
 					xaxis = dict(
-						tickmode = 'linear',
-						title = dict(
-							font = dict(
-								size = config['label']['size'],
-							)
-						)
+						# set range to 1 to laps
+						range = [1, race['session']['laps']],
 					),
 					yaxis = dict(
-						tickmode = 'array',
-						tickvals = ytickvals,
-						ticktext = [ACC.convert_time(tickval) for tickval in ytickvals],
-						title = dict(
-							font = dict(
-								size = config['label']['size'],
-							)
-						),
-					),
-					width = width,
-					height = height,
-					title = dict(
-						font = dict(
-							size = config['title']['size'],
-						)
-					),
-					font = dict(
-						size = config['font']['size'],
-					),
+						tickmode = "array",
+						tickvals = yTickvals,
+						ticktext = [ACC.convertTime(v) for v in yTickvals],
+					)
 				)
-				fig.update_traces(
-					line = {
-						'width': 5,
-					}
-				)
-				slowest_laptime_position = df[df['laptime_ms'] == slowest_laptime_ms].index[0]
-				fastest_laptime_position = df[df['laptime_ms'] == fastest_laptime_ms].index[0]
+				# slowest lap annotation
+				slowest_laptime_position = y.index(slowest_laptime_ms)
 				fig.add_annotation(
 					x = df['lap'][slowest_laptime_position],
 					y = df['laptime_ms'][slowest_laptime_position],
-					text = f"{ACC.convert_time(slowest_laptime_ms)}",
+					text = f"{ACC.convertTime(slowest_laptime_ms)}",
 					showarrow = True,
 					arrowhead = 1,
 					arrowwidth = 3,
@@ -255,13 +359,15 @@ class Graph(commands.Cog, name="Graph"):
 						color = config['annotation']['slowest']['color'],
 						size = config['annotation']['slowest']['size']
 					),
-					ax = -20,
-					ay = -40,
+					ax = -15,
+					ay = -30,
 				)
+				# fastest lap annotation
+				fastest_laptime_position = y.index(fastest_laptime_ms)
 				fig.add_annotation(
 					x = df['lap'][fastest_laptime_position],
 					y = df['laptime_ms'][fastest_laptime_position],
-					text = f"{ACC.convert_time(fastest_laptime_ms)}",
+					text = f"{ACC.convertTime(fastest_laptime_ms)}",
 					showarrow = True,
 					arrowhead = 1,
 					arrowwidth = 3,
@@ -270,16 +376,16 @@ class Graph(commands.Cog, name="Graph"):
 						color = config['annotation']['fastest']['color'],
 						size = config['annotation']['fastest']['size']
 					),
-					ax = 20,
-					ay = 40,
+					ax = 15,
+					ay = 30,
 				)
-				average_laptime_ms = sum([lap['laptime_ms'] for lap in data]) / len(data)
-				# create a highlight for average laptime
+				# average laptime
+				average_laptime_ms = sum(y) / len(y)
 				fig.add_shape(
 					type = "line",
 					x0 = 1,
 					y0 = average_laptime_ms,
-					x1 = result['session']['laps'],
+					x1 = race['session']['laps'],
 					y1 = average_laptime_ms,
 					line = dict(
 						color = "rgb(192,192,192)",
@@ -287,30 +393,6 @@ class Graph(commands.Cog, name="Graph"):
 						dash = "dot",
 					),
 				)
-				if config['logo']['source'] != "" and config['logo']['source'] is not None:
-					logo = Dest.file(config['logo']['source'])
-					if Dest.exists(logo):
-						print(f"logo: {logo}")
-						# get mime type
-						mime = Dest.mime(logo)
-						with open(logo, "rb") as f:
-							logo = base64.b64encode(f.read()).decode()
-						fig.add_layout_image(
-							dict(
-								source = f"data:{mime};base64,{logo}",
-								xref = "paper",
-								yref = "paper",
-								x = config['logo']['x'],
-								y = config['logo']['y'],
-								sizex = config['logo']['sizex'],
-								sizey = config['logo']['sizey'],
-								xanchor = config['logo']['xanchor'],
-								yanchor = config['logo']['yanchor'],
-								opacity = config['logo']['opacity'],
-								layer = "below",
-							)
-						)
-				# save the figure as png
 				fig.write_image(
 					Dest.join(temp, pngFile)
 				)
@@ -319,6 +401,15 @@ class Graph(commands.Cog, name="Graph"):
 					file=discord.File(
 						Dest.join(temp, pngFile)
 					)
+				)
+				Dest.json.save(
+					Dest.join(temp, f"{dt.strftime('%y%m%d')}_{dt.strftime('%H%M%S')}_{heat}.result.laptimes.json"),
+					{
+						"x": x,
+						"y": y,
+						"yTxt": yTxt,
+						"car": car,
+					}
 				)
 		except ValueError as e:
 			traceback.print_exc()
@@ -333,133 +424,95 @@ class Graph(commands.Cog, name="Graph"):
 				ctx = ctx,
 			)
 
+
 	@commands.command(
 		description = "Show a graph of drivers positions throughout a race",
 		usage = "positions [input with date and time or latest and maybe type of the race and]",
-		hidden = False,
+		hidden = True,
 		aliases = [
 			"position",
 			"laps",
 		]
 	)
 	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
 	async def positions(self, ctx:commands.Context, *, input:str = None) -> None:
 		"""
 		Show a graph of drivers position
 		```
-		{ctx.prefix}positions 241231 235959 r
-		{ctx.prefix}positions 241231 235959 q
-		{ctx.prefix}positions 241231 235959 fp
+		{ctx.prefix}positions
 		{ctx.prefix}positions latest
-		{ctx.prefix}positions latest r 1-10
-		{ctx.prefix}positions latest r #21
-		{ctx.prefix}positions 241231 235959 q 5-10
-		{ctx.prefix}positions 241231 235959 fp #21
+		{ctx.prefix}positions 241231
+		{ctx.prefix}positions 241231 235959
 		```
 		"""
 		try:
-			print(f"position")
 			async with ctx.typing():
-				# check if input is a date
-				config = self.bot.get_config(ctx.guild, "graph")
-				label = self.bot.get_config(ctx.guild, "label", "graph")
-				date, time, session, _, _ = self.parse_graph_input(input)
-				print(f"\ndate: {date}\ntime: {time}\nsession: {session}\n")
-				temp = self.bot.get_temp("results")
-				regexp = f"^{date}_{time}_{session}\.result\.json$"
-				print(f"regexp: {regexp}")
-				resultFile = Dest.scan(temp, regexp, 'last')
-				if resultFile is None:
-					raise ValueError("No results found. Run the race, qualify or practice command first.")
+				date, time, _, _, _ = ACC.parseRaceInput(input)
+				print(f"positions date: {date}\ntime: {time}")
+				temp = self.bot.getTemp("results")
+				session = ACC.session(
+					temp,
+					date,
+					time,
+					free_practices=0,
+				)
+				if session is None:
+					raise ValueError("No results found for the given date (and time).")
+				dt = session.get("info", {}).get("datetime", None)
+				if dt is None:
+					raise ValueError("No datetime found in session info.")
 				# get date and time and session from filename: 240309_220433_R.json.result.json
-				filename = Dest.filename(resultFile)
-				print(f"filename: {filename}")
-				date, time, session = filename.split(".")[0].split("_")
-				print(f"date: {date}\ntime: {time}\nsession: {session}")
-				# get the results from temp result directory
-				jsonFile = f"{date}_{time}_{session}.json"
-				print(f"jsonFile: {jsonFile}")
-				pngFile = f"{date}_{time}_{session}.positions.png"
+				file = f"{dt.strftime('%y%m%d')}_{dt.strftime('%H%M%S')}_R.result.json"
+				pngFile = Dest.extension(
+					Dest.suffix(
+						Dest.filename(file),
+						'.laptimes'
+					), 'png'
+				)
 				print(f"pngFile: {pngFile}")
 				# check if png file exists
-
+				"""
 				if Dest.exists(Dest.join(temp, pngFile)):
 					return await ctx.send(
 						file=discord.File(
 							Dest.join(temp, pngFile)
 						)
 					)
-
-				# load the result sa json
-				result = Dest.json.load(resultFile, True)
-				if len(result['laps']) == 0:
-					# delete the result file
-					Dest.remove(resultFile)
+				"""
+				# prepare the graph
+				label = self.bot.getConfig(ctx.guild, "label", "graph")
+				config = self.bot.getConfig(ctx.guild, "graph")
+				race = session.get("r")
+				quali = session.get("q")
+				print("session info")
+				Dest.json.print(session.get("info"))
+				# check
+				if len(race.get("laps", [])) == 0:
+					# delete the race file
+					Dest.remove(file)
 					raise ValueError(f"No laps found, no data to graph...")
-				cars:dict = {}
-				carLaps:dict = {}
-				carTime:dict = {}
-				for carId, car in result.get("cars", {}).items():
-					carId = int(carId)
-					carLaps.setdefault(carId, 0)
-					carTime.setdefault(carId, 0)
-					# create the drivers dict for each car and use driverIndex as key
-					drivers:dict = {}
-					for driver_index, driver in car.get("drivers").items():
-						driver_index = int(driver_index)
-						_driver:dict = {
-							"playerId": driver["playerId"],
-							"firstName": driver["firstName"],
-							"lastName": driver["lastName"],
-							"shortName": driver["shortName"],
-						}
-						drivers[driver_index] = _driver
-					_car:dict = {
-						"car": car["car"],
-						"number": car["number"],
-						"laps": car["laps"],
-						"time": car["time"],
-						"drivers": drivers,
-					}
-					cars[carId] = _car
-				laps = [[] for _ in range(max([car.get("laps") for car in cars.values()]))]
-				for lap in result.get("laps", []):
-					car_id:int = lap["carId"]
-					driver_index:int = lap["driverIndex"]
-					laptime:int = lap["laptime"]
-					if carLaps.get(car_id) == 0:
-						carLaps[car_id] += 1
-						continue
-					l = carLaps[car_id]
-					idx = l - 1
-					carTime[car_id] += laptime
-					_lap = {
-						"position": 0, #len(laps[idx]) + 1 if idx in laps else 1,
-						"lap": l,
-						"carId": car_id,
-						"driverIndex": driver_index,
-						"laptime": laptime,
-						"time": carTime.get(car_id),
-					}
-					laps[idx].append(_lap)
-					carLaps[car_id] += 1
-				for l, lap_list in enumerate(laps):
-					laps[l] = sorted(lap_list, key=lambda x: x["time"])
-					# fix position
-					for i, lap in enumerate(laps[l]):
-						lap["position"] = i + 1
 				x = []
 				y = []
 				car = []
-				for _lap, lap in enumerate(laps):
+				cars = race.get("cars", {})
+				for _lap, lap in enumerate(race["laps"]):
+					# if _lap is zero, then get the starting positions from quali results
+					if _lap == 0 and quali is not None and len(quali.get("positions", [])) > 0:
+						for position, _car in enumerate(quali.get("positions", [])):
+							x.append(_lap + 1)
+							y.append(position + 1)
+							car.append(
+								f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.carTeam(cars.get(_car['carId']))}",
+							)
+						continue
+					# get
 					for position, _car in enumerate(lap):
-						x.append(_lap) # _car["lap"]
+						x.append(_lap + 1) # _car["lap"]
 						y.append(position + 1) # _car["position"]
 						car.append(
-							f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.driverName(cars.get(_car['carId']).get('drivers', {}).get(_car['driverIndex'], {}))}",
-							#f"#{cars.get(_car['carId'], {}).get('number', 'N/A')} {cars.get(_car['carId']).get('drivers', {}).get(_car['driverIndex'], {}).get('lastName', 'N/A')}"
+							f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.carTeam(cars.get(_car['carId']))}",
 						)
-				wet = "(wet)"
 				df = pd.DataFrame({
 					"lap": x,
 					"position": y,
@@ -470,74 +523,41 @@ class Graph(commands.Cog, name="Graph"):
 					x = "lap",
 					y = "position",
 					color = "car",
-					line_shape = "spline",
-					template = "plotly_dark",
-					title = f"{result['server']} · {ACC.fullTrackName(result['track'])} · {result['typeName']} · {result['session']['laps']} laps {wet if result['wet'] == 1 else ''}",
+					title = f"{race['session']['name']} · {race['session']['track']['name']} · {race['session']['type']['name']}"\
+						f" · {race['session']['laps']} laps{' (wet)' if race['session']['wet'] == 1 else ''}"\
+						f" · {session['info']['datetime'].strftime('%m-%d-%y @%H')}",
 					labels = {
 						"position": label["positions"],
 						"lap": label["laps"],
 						"car": label["drivers"],
-					},
-				)
-				width = max(config['lap_width'] * result['session']['laps'] + 400, config['min_width'])
-				height = config['min_height']
-				fig.update_layout(
-					xaxis = dict(
-						tickmode = "linear",
-						title = dict(
-							font = dict(
-								size = config['label']['size'],
-							)
-						)
-					),
-					yaxis = dict(
-						tickmode = "linear",
-						autorange = "reversed",
-						title = dict(
-							font = dict(
-								size = config['label']['size'],
-							)
-						)
-					),
-					width = width,
-					height = height,
-					title = dict(
-						font = dict(
-							size = config['title']['size'],
-						)
-					),
-					font = dict(
-						size = config['font']['size'],
-					),
-				)
-				fig.update_traces(
-					line = {
-						'width': 5,
 					}
 				)
-				if config['logo']['source'] != "" and config['logo']['source'] is not None:
-					logo = Dest.file(config['logo']['source'])
-					if Dest.exists(logo):
-						print(f"logo: {logo}")
-						# get mime type
-						mime = Dest.mime(logo)
-						with open(logo, "rb") as f:
-							logo = base64.b64encode(f.read()).decode()
-						fig.add_layout_image(
-							dict(
-								source = f"data:{mime};base64,{logo}",
-								xref = "paper",
-								yref = "paper",
-								x = config['logo']['x'],
-								y = config['logo']['y'],
-								sizex = config['logo']['sizex'],
-								sizey = config['logo']['sizey'],
-								xanchor = config['logo']['xanchor'],
-								yanchor = config['logo']['yanchor'],
-								opacity = config['logo']['opacity'],
-								layer = "below",
-							)
-						)
+				self.fig_line_update_defaults(fig, config, race)
+				fig.add_vrect(
+					x0 = min(x),
+					x1 = min(x) + 1,
+					fillcolor = "rgb(64,64,64)",
+					opacity = 0.2,
+					layer = "below",
+					line_width = 0,
+				),
+				fig.add_annotation(
+					x = min(x) + 0.5,
+					# get the middle of the y axis
+					y = (max(y) + min(y)) / 2,
+					text = label["bug_start_positions"],
+					showarrow = False,
+					textangle = -90,
+					font = dict(
+						color = "rgba(96,96,96,0.5)",
+						size = 30
+					),
+				)
+				fig.update_layout(
+					yaxis = dict(
+						autorange = "reversed",
+					)
+				)
 				fig.write_image(
 					Dest.join(temp, pngFile)
 				)
@@ -547,8 +567,14 @@ class Graph(commands.Cog, name="Graph"):
 						Dest.join(temp, pngFile)
 					)
 				)
-
-
+				Dest.json.save(
+					Dest.join(temp, f"{dt.strftime('%y%m%d')}_{dt.strftime('%H%M%S')}_R.result.positions.json"),
+					{
+						"x": x,
+						"y": y,
+						"car": car,
+					}
+				)
 		except ValueError as e:
 			traceback.print_exc()
 			await self.bot.warn(
@@ -562,7 +588,7 @@ class Graph(commands.Cog, name="Graph"):
 				ctx = ctx,
 			)
 
-async def setup(bot:commands.Bot) -> None:
+async def setup(bot:bang.Bot) -> None:
 	try:
 		await bot.add_cog(
 			Graph(

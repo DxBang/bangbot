@@ -1,6 +1,6 @@
 import os, sys
 import traceback
-from bang.bot import Bang
+import bang
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,7 +9,7 @@ TOKEN = os.getenv('DISCORD_TOKEN')
 
 if __name__ == "__main__":
 	try:
-		bot = Bang(
+		bot = bang.Bot(
 			TOKEN
 		)
 		bot.run()

@@ -1,39 +1,29 @@
 from datetime import datetime, timezone, timedelta
 import re
 import pytz
+from .dest import Dest
+from .human import Human
 
 class ACC:
 	@staticmethod
-	def parse_date_for_regexp(date:str = None, throw:bool = True) -> str | None:
-		print(f"parse_date: {date} ({type(date)})")
+	def parseDateRegexp(date:str = None, throw:bool = True) -> str | None:
+		print(f"parseDate: {date} ({type(date)})")
 		if date is None or date.lower() == "latest":
 			return "\d{6}"
-		return ACC.parse_date(date, throw)
+		return ACC.parseDate(date, throw)
 
 	@staticmethod
-	def parse_date(date:str = None, throw:bool = True) -> str | None:
-		if date.lower() == "today":
-			return datetime.now(timezone.utc).strftime("%y%m%d")
-		if date.lower() == "yesterday":
-			return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%y%m%d")
-		if date.lower() == "tomorrow":
-			return (datetime.now(timezone.utc) + timedelta(days=1)).strftime("%y%m%d")
-		if re.match(r"^[0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-			return datetime.strptime(date, "%y%m%d").strftime("%y%m%d")
-		if re.match(r"^[1-2][0-9][0-9]{2}[0-1][0-9][0-3][0-9]$", date):
-			return datetime.strptime(date, "%Y%m%d").strftime("%y%m%d")
-		if re.match(r"^[0-9]{4}-[0-1]?[0-9]-[0-3]?[0-9]$", date):
-			return datetime.strptime(date, "%Y-%m-%d").strftime("%y%m%d")
-		if re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{2}$", date):
-			return datetime.strptime(date, "%d/%m/%y").strftime("%y%m%d")
-		if re.match(r"^[0-3]?[0-9]/[0-1]?[0-9]/[0-9]{4}$", date):
-			return datetime.strptime(date, "%d/%m/%Y").strftime("%y%m%d")
-		if throw:
-			raise ValueError("Invalid date format. Try **YYMMDD**, **YYYYMMDD**, **YYYY-MM-DD**, or **DD/MM/YY**.")
+	def parseDate(date:str = None, throw:bool = True) -> str | None:
+		try:
+			return Human.date(date)
+		except Exception as e:
+			if throw:
+				raise e
+			return None
 
 	@staticmethod
-	def parse_time_for_regexp(time:str = None, throw:bool = True) -> str | None:
-		print(f"parse_time: {time} ({type(time)}")
+	def parseTimeRegexp(time:str = None, throw:bool = True) -> str | None:
+		print(f"parseTime: {time} ({type(time)}")
 		if time is None or time.lower() == "latest" or time == "*":
 			return "\d{6}"
 		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
@@ -42,23 +32,19 @@ class ACC:
 			return re.sub(r'[\.:]', '', time) + r'\d{2}'
 		if re.match(r"^[0-2][0-9]", time):
 			return re.sub(r'[\.:]', '', time) + r'\d{4}'
-		return ACC.parse_time(time, throw)
+		return ACC.parseTime(time, throw)
 
 	@staticmethod
-	def parse_time(time:str = None, throw:bool = True) -> str | None:
-		if time.lower() == "now":
-			return datetime.now(timezone.utc).strftime("%H%M%S")
-		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9]", time):
-			return re.sub(r'[\.:]', '', time) + "00"
-		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
-			return re.sub(r'[\.:]', '', time)
-		if re.match(r"[0-2][0-9][0-5][0-9]", time):
-			return time + "00"
-		if throw:
-			raise ValueError("Invalid time format. Try **HHMM**.")
+	def parseTime(time:str = None, throw:bool = True) -> str | None:
+		try:
+			return Human.time(time)
+		except Exception as e:
+			if throw:
+				raise e
+			return None
 
 	@staticmethod
-	def convert_time(ms:int) -> str:
+	def convertTime(ms:int) -> str:
 		if ms >= 31536000000:
 			return str(datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Yy %mn %dd %H:%M:%S.%f")[:-3])
 		if ms >= 86400000:
@@ -72,7 +58,6 @@ class ACC:
 	@staticmethod
 	def fullTrackName(short:str) -> str:
 		return {
-			"barcelona": "Circuit de Barcelona-Catalunya",
 			"barcelona": "Circuit de Barcelona-Catalunya",
 			"brands_hatch": "Brands Hatch",
 			"cota": "Circuit of the Americas",
@@ -133,6 +118,7 @@ class ACC:
 			"snetterton_2020": "Snetterton Circuit '20",
 			"donington_2020": "Donington Park '20",
 			"imola_2020": "Autodromo Internazionale Enzo e Dino Ferrari '20",
+			"red_bull_ring": "Red Bull Ring",
 		}.get(short, short)
 
 	@staticmethod
@@ -254,24 +240,491 @@ class ACC:
 
 	@staticmethod
 	def driverName(driver:dict) -> str:
-		if driver["firstName"] != "" and driver["lastName"] != "":
-			return f"{driver['firstName']} {driver['lastName']}"
-		elif driver["lastName"] != "":
-			return f"{driver['lastName']}"
+		if driver["name"] != "" and driver["surname"] != "":
+			return f"{driver['name']} {driver['surname']}"
+		elif driver["surname"] != "":
+			return f"{driver['surname']}"
+		elif driver["name"] != "":
+			return f"{driver['name']}"
+		elif driver["abbreviation"] != "":
+			return f"{driver['abbreviation']}"
+		return "Unknown"
+
+	@staticmethod
+	def carTeam(car:dict) -> str:
+		# if car team is longer then 0, use team name
+		if len(car.get("team", "")) > 0:
+			return car.get("team")
+		if len(car.get("drivers", [])) == 1:
+			return ACC.driverName(car.get("drivers")[0])
 		else:
-			return f"{driver['shortName']}"
+			return "".join([
+				ACC.driverName(driver)[:3]
+				for driver in car.get("drivers", [])
+			])
 
 	@staticmethod
 	def dateToEpoch(date:str, time:str, tz:str) -> int:
-		date = ACC.parse_date(date)
-		time = ACC.parse_time(time)
+		date = Human.date(date) # datetime
+		if time is not None:
+			time = Human.time(time) # datetime
+			date = datetime.combine(
+				date,
+				time.time()
+			)
 		tz = pytz.timezone(tz)
 		combined = tz.localize(
-			datetime.strptime(f"{date} {time}", "%y%m%d %H%M%S")
+			date
 		)
 		return int(combined.timestamp())
 
 	@staticmethod
 	def epochToDate(epoch:int, tz:str) -> str:
 		return datetime.fromtimestamp(epoch, tz=timezone.tzname(tz)).strftime("%y%m%d %H%M%S")
+
+
+	@staticmethod
+	def sessionTimestampFiles(path:str) -> dict | None:
+		files = Dest.scan(
+			path,
+			r"^\d{6}_\d{6}_(FP|Q|R)\.json$",
+			"all"
+		)
+		ret:dict = {
+			"r": {},
+			"q": {},
+			"fp": {},
+		}
+		for k, v in ret.items():
+			print(f"r: {k} type: {type(v)}")
+		"""
+		ret = {
+			"r": {
+				"{timestamp}": "{file}",
+				"{timestamp}": "{file}",
+			},
+			"q": {
+				"{timestamp}": "{file}",
+				"{timestamp}": "{file}",
+			},
+			"fp": {
+				"{timestamp}": "{file}",
+				"{timestamp}": "{file}",
+			}
+		}
+		"""
+		for file in files:
+			#print(f"file: {file}")
+			file = Dest.basename(file)
+			date, time, session = Dest.filename(file).split("_")
+			#print(f"date: {date}, time: {time}, session: {session}")
+			timestamp = int(
+					datetime.strptime(
+					f"{date} {time}",
+					"%y%m%d %H%M%S"
+				).timestamp()
+			)
+			#print(f"timestamp: {timestamp}")
+			#print(f"session: {session.lower()}")
+			#print(f"ret type: {type(ret[session.lower()])}")
+			ret[session.lower()].update({
+				timestamp: file
+			})
+		return ret
+
+	@staticmethod
+	def sessionTimestampFilter(stamps:dict, target:int) -> dict | None:
+		filtered = {k: v for k, v in stamps.items() if k <= target}
+		if filtered:
+			highest = max(filtered)
+			return filtered[highest]
+		return None
+
+	@staticmethod
+	def sessionRaceFile(path:str, date:str, time:str = None, stamps:dict = None) -> str | None:
+		if stamps is None:
+			stamps = ACC.sessionTimestampFiles(path).get("r")
+		if stamps is None:
+			return None
+		print(f"stamps: {stamps}")
+		date = Human.date(date).strftime("%y%m%d")
+		time = Human.time(time).strftime("%H%M%S")
+		timestamp = datetime.strptime(f"{date} {time}", "%y%m%d %H%M%S").timestamp()
+		return ACC.sessionTimestampFilter(stamps, timestamp)
+
+	@staticmethod
+	def sessionQualifyingFile(path:str, date:str, time:str = None, stamps:dict = None) -> str | None:
+		if stamps is None:
+			stamps = ACC.sessionTimestampFiles(path).get("q")
+		if stamps is None:
+			return None
+		date = Human.date(date).strftime("%y%m%d")
+		time = Human.time(time).strftime("%H%M%S")
+		timestamp = datetime.strptime(f"{date} {time}", "%y%m%d %H%M%S").timestamp()
+		return ACC.sessionTimestampFilter(stamps, timestamp)
+
+	@staticmethod
+	def sessionFreePracticeFile(path:str, date:str, time:str = None, stamps:dict = None) -> str | None:
+		if stamps is None:
+			stamps = ACC.sessionTimestampFiles(path).get("fp")
+		if stamps is None:
+			return None
+		date = Human.date(date).strftime("%y%m%d")
+		time = Human.time(time).strftime("%H%M%S")
+		timestamp = datetime.strptime(f"{date} {time}", "%y%m%d %H%M%S").timestamp()
+		return ACC.sessionTimestampFilter(stamps, timestamp)
+
+	@staticmethod
+	def sessionFiles(path:str, date:str, time:str = None, free_practices:int = 1) -> dict | None:
+		# create a regexp for based on the date to {date}_{time}_R.json
+		ret = {
+			"r": None,
+			"q": None,
+			"fp": None,
+		}
+		files = ACC.sessionTimestampFiles(path)
+		date = Human.date(date).strftime("%y%m%d")
+		time = Human.time(time).strftime("%H%M%S")
+		timestamp = datetime.strptime(f"{date} {time}", "%y%m%d %H%M%S").timestamp()
+		# find the race file
+		file = ACC.sessionTimestampFilter(files.get("r"), timestamp)
+		if file is None:
+			return None
+		ret["r"] = file
+		# update the timestamp to this file
+		date, time, _ = Dest.filename(file).split("_")
+		timestamp = int(
+			datetime.strptime(
+				f"{date} {time}",
+				"%y%m%d %H%M%S"
+			).timestamp()
+		) - 1
+		# find the qualifying file
+		file = ACC.sessionTimestampFilter(files.get("q"), timestamp)
+		if file is not None:
+			ret["q"] = file
+			# update the timestamp to this file
+			date, time, _ = Dest.filename(file).split("_")
+			timestamp = int(
+				datetime.strptime(
+					f"{date} {time}",
+					"%y%m%d %H%M%S"
+				).timestamp()
+			) - 1
+			# check that it isn't related to another R file
+			"""
+			This needs to be implemented later... maybe, if it is needed.
+			A race needs a qualifying session...
+			"""
+		if free_practices == 0:
+			del ret["fp"]
+			return ret
+		if free_practices == 1:
+			file = ACC.sessionTimestampFilter(files.get("fp"), timestamp)
+			if file is not None:
+				ret["fp"] = file
+		else:
+			# find the free practice files
+			ret["fp"] = []
+			for i in range(free_practices):
+				file = ACC.sessionTimestampFilter(files.get("fp"), timestamp)
+				if file is None:
+					break
+				# update the timestamp to this file
+				date, time, _ = Dest.filename(file).split("_")
+				timestamp = int(
+					datetime.strptime(
+						f"{date} {time}",
+						"%y%m%d %H%M%S"
+					).timestamp()
+				) - 1
+				ret["fp"].append(file)
+		return ret
+
+	@staticmethod
+	def loadSession(file:str) -> dict | None:
+		# tmp/sessions/test.json
+		if Dest.exists(file):
+			_session = Dest.json.load(file)
+			session = {
+				"r": None,
+				"q": None,
+				"fp": None,
+			}
+			for k, v in _session.items():
+				if k in session:
+					session[k] = v
+			return session
+		return None
+
+	@staticmethod
+	def loadSessionResult(file:str) -> dict | None:
+		resultFile = Dest.suffix(file, ".result")
+		if Dest.exists(resultFile):
+			return ACC.load(resultFile)
+		if Dest.exists(file):
+			result = ACC.loadACCConverted(file)
+			if result is not None:
+				ACC.save(resultFile, result)
+				return result
+		return None
+
+	@staticmethod
+	def session(path:str, date:datetime, time:datetime = None, free_practices:int = 1) -> dict | None:
+		files = ACC.sessionFiles(path, date, time, free_practices)
+		if files is None:
+			return None
+		date, time, _ = Dest.filename(files.get("r")).split("_")
+		ret = {
+			"version": "0.1",
+			"info": {
+				"datetime": datetime.strptime(f"{date} {time}", "%y%m%d %H%M%S"),
+				"files": files,
+			},
+			"r": None,
+			"q": None,
+			"fp": None,
+		}
+		for session, file in files.items():
+			if file is None:
+				continue
+			if session == "fp":
+				if free_practices == 1:
+					ret[session] = ACC.loadSessionResult(Dest.join(path, file))
+					continue
+				else:
+					ret[session] = []
+					for _file in file:
+						ret[session].append(ACC.loadSessionResult(Dest.join(path, _file)))
+					continue
+			ret[session] = ACC.loadSessionResult(Dest.join(path, file))
+		return ret
+
+	@staticmethod
+	def load(file:str) -> dict:
+		return Dest.json.load(
+			file,
+			True
+		)
+	@staticmethod
+	def save(file:str, data:dict) -> None:
+		Dest.json.save(
+			file,
+			data
+		)
+
+	@staticmethod
+	def convertACC(data:dict) -> dict | None:
+		try:
+			if data.get("sessionType", None) is None:
+				raise KeyError("Invalid result file. Missing 'sessionType' key.")
+			if data.get("sessionResult", None) is None:
+				raise KeyError("Invalid result file. Missing 'sessionResult' key.")
+			bestLapDriver = None
+			bestLapTime = data.get("sessionResult").get("bestlap", 0)
+			leader:dict = data.get("sessionResult").get("leaderBoardLines")[0]
+			session:dict = {
+				"name": data.get("serverName", ""),
+				"index": data.get("sessionIndex", 0),
+				"weekend": data.get("weekendIndex", 0),
+				"wet": data.get("sessionResult").get("isWetSession", 0),
+				"laps": leader.get("timing").get("lapCount"),
+				"time": leader.get("timing").get("totalTime"),
+				"best": {
+					"lap": {
+						"time": bestLapTime,
+						"driver": bestLapDriver
+					},
+					"split": data.get("sessionResult").get("bestSplits", []),
+				},
+				"type": {
+					"tag": data.get("sessionType", ""),
+					"name": {
+						"FP": "Free Practice",
+						"Q": "Qualifying",
+						"R": "Race",
+					}.get(data.get("sessionType", ""), "Unknown"),
+					"result": data.get("sessionResult").get("type", -1),
+				},
+				"track": {
+					"tag": data.get("trackName", ""),
+					"name": ACC.fullTrackName(data.get("trackName", "")),
+				},
+			}
+			positions:dict = []
+			cars:dict = {}
+			penalties:dict = {
+				"race": {},
+				"post": {},
+			}
+			# temps
+			carLaps:dict = {}
+			carTime:dict = {}
+			for _position in data.get("sessionResult", {}).get("leaderBoardLines"):
+				_car = _position.get("car")
+				_drivers = _car.get("drivers")
+				carId = _car.get("carId")
+				carLaps.setdefault(carId, 0)
+				carTime.setdefault(carId, 0)
+				drivers:list = []
+				# for idx, _driver in enumerate(_drivers):
+				for _driver in _drivers:
+					driver:dict = {
+						"playerId": _driver.get("playerId", ""),
+						"name": _driver.get("firstName", ""),
+						"surname": _driver.get("lastName", ""),
+						"abbreviation": _driver.get("shortName", ""),
+					}
+					drivers.append(driver)
+				carModel = ACC.car(_car.get("carModel", 0))
+				car:dict = {
+					"number": _car.get("raceNumber", 0),
+					"cup": _car.get("cupCategory", 0),
+					"team": _car.get("teamName", ""),
+					"group": _car.get("carGroup", ""),
+					"nationality": _car.get("nationality", ""),
+					"model": dict(
+						id = _car.get("carModel", 0),
+						name = carModel[0],
+						year = carModel[1],
+						group = carModel[2],
+					),
+					"drivers": drivers,
+				}
+				cars.update({
+					carId: car
+				})
+				# positions
+				position = {
+					"carId": carId,
+					"driverId": _position.get("currentDriverIndex", 0),
+					"timing": {
+						"laps": _position.get("timing").get("lapCount"),
+						"time": _position.get("timing").get("totalTime"),
+						"best": {
+							"lap": _position.get("timing").get("bestLap"),
+							"split": _position.get("timing").get("bestSplits"),
+						},
+						"drivers": _position.get("driverTotalTimes"),
+					},
+					"pitstop": _position.get("missingMandatoryPitstop"),
+				}
+				if session.get("laps") < _position.get("timing").get("lapCount"):
+					session["laps"] = _position.get("timing").get("lapCount")
+				positions.append(position)
+			laps:list = [[] for _ in range(session.get("laps"))]
+			for _lap in data.get("laps", []):
+				carId:int = _lap["carId"]
+				# remove this if they have fixed the lap zero issue (lap zero bug in ACC)
+				if carLaps.get(carId) == 0:
+					_lap["laptime"] = 0 # reset lap zero, since ACC counts the lap way before race start
+					_lap["splits"][0] = 0 # reset split zero, since ACC counts the lap way before race start
+				# end remove
+				driverIndex:int = _lap["driverIndex"]
+				laptime:int = _lap["laptime"]
+				lap = carLaps[carId]
+				idx = lap # - 1 only if lap zero is removed
+				carTime[carId] += laptime
+				laps[idx].append({
+					#"@position": 0, # redundant as it is sorted in current level
+					#"@lap": lap, # redundant as it is sorted in previous level
+					#"@driver": ACC.driverName(cars.get(carId).get("drivers")[driverIndex]),
+					#"@time": ACC.convertTime(laptime),
+					"carId": carId,
+					"driverId": driverIndex,
+					"valid": _lap.get("isValidForBest", False),
+					"time": laptime,
+					"total": carTime.get(carId),
+					"split": _lap.get("splits", []),
+				})
+				if bestLapDriver is None and laptime == bestLapTime:
+					bestLapDriver = {
+						"time": laptime,
+						"lap": lap,
+						"carId": carId,
+						"driverId": driverIndex,
+					}
+					session["best"]["lap"] = bestLapDriver
+				carLaps[carId] += 1
+			for idx, _cars in enumerate(laps):
+				#laps[idx] = sorted(_cars, key=lambda x: x["total"])
+				# fix position
+				if '@position' in _cars[0]:
+					for position, car in enumerate(laps[idx]):
+						car["@position"] = position + 1
+			# penalties
+			_penalties = [
+				{"field": "penalties", "type": "race"},
+				{"field": "post_race_penalties", "type": "post"},
+			]
+			for penalty in _penalties:
+				for _penalty in data.get(penalty.get("field"), []):
+					carId = _penalty.get("carId")
+					if carId not in penalties.get(penalty.get("type")):
+						penalties.get(penalty.get("type")).update({
+							carId: []
+						})
+					penalties.get(penalty.get("type")).get(carId).append(
+						{
+							"driver": _penalty.get("driverIndex", 0),
+							"reason": _penalty.get("reason", ""),
+							"penalty": _penalty.get("penalty", ""),
+							"value": _penalty.get("penaltyValue", 0),
+							"violated": _penalty.get("violationInLap", 0),
+							"cleared": _penalty.get("clearedInLap", 0),
+						}
+					)
+			return dict(
+				version = "0.2",
+				session = session,
+				positions = positions,
+				cars = cars,
+				laps = laps,
+				penalties = penalties,
+			)
+		except Exception as e:
+			raise e
+
+	@staticmethod
+	def loadACC(file:str) -> dict:
+		return Dest.json.load(
+			file,
+			True
+		)
+
+	@staticmethod
+	def loadACCConverted(file:str) -> None:
+		return ACC.convertACC(
+			ACC.loadACC(file)
+		)
+
+	@staticmethod
+	def parseRaceInput(input:str = None) -> tuple:
+		date:datetime = None
+		time:datetime = None
+		session:str = 'R'
+		top:list[int] = []
+		numbers:list[int] = []
+		if input is None:
+			return date, time, session, top, numbers
+		inputs = input.split(" ")
+		for input in inputs:
+			if input.lower() in ["r", "q", "fp", "f", "p"]:
+				if input.lower() in ["f", "p"]:
+					session = "FP"
+					continue
+				session = input.upper()
+				continue
+			if input.startswith("#"):
+				numbers = [int(number) for number in input[1:].split(",")]
+				continue
+			if date is None:
+				date = ACC.parseDate(input)
+				continue
+			if date is not None and time is None:
+				time = ACC.parseTime(input)
+				continue
+		return date, time, session, top, numbers
+
+
 

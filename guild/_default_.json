@@ -107,7 +107,9 @@
 			"date": "Date",
 			"time": "Time",
 			"laptime": "Laptime",
-			"laptimes": "Laptimes"
+			"laptimes": "Laptimes",
+			"bug_start_positions": "from qualification due to invalid first lap bug",
+			"bug_start_laptimes": "average laptime due to invalid first lap bug"
 		},
 		"form": {
 			"submit": {

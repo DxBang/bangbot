@@ -1,3 +1,4 @@
+import bang
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -25,7 +26,7 @@ class Gaming(commands.Cog, name="Gaming"):
 	__slots__ = (
 		"bot"
 	)
-	def __init__(self, bot:commands.Bot) -> None:
+	def __init__(self, bot:bang.Bot) -> None:
 		try:
 			self.bot = bot
 		except Exception as e:
@@ -33,7 +34,7 @@ class Gaming(commands.Cog, name="Gaming"):
 
 
 
-async def setup(bot:commands.Bot) -> None:
+async def setup(bot:bang.Bot) -> None:
 	try:
 		await bot.add_cog(
 			Gaming(

@@ -33,11 +33,22 @@ class Dest:
 			raise e
 
 	@staticmethod
-	def extension(destination:str) -> str:
+	def basename(destination:str) -> str:
+		return Dest.base(destination)
+
+	@staticmethod
+	def extension(destination:str, extension:str = None) -> str:
 		try:
-			_, base = os.path.split(destination)
-			_, ext = os.path.splitext(base)
-			return ext
+			if extension is None:
+				_, base = os.path.split(destination)
+				_, ext = os.path.splitext(base)
+				return ext[1:]
+			path, base = os.path.split(destination)
+			name, _ = os.path.splitext(base)
+			return os.path.join(
+				path,
+				f"{name}.{extension}"
+			)
 		except Exception as e:
 			raise e
 
@@ -246,6 +257,39 @@ class Dest:
 			raise e
 
 	@staticmethod
+	def scan_next(path:str, first:re, next:re) -> str | None:
+		try:
+			files = os.listdir(path)
+			found = False
+			for file in files:
+				if re.match(first, file):
+					print(f"first: {file}")
+					found = True
+					continue
+				if found and re.match(next, file):
+					print(f"next: {file}")
+					return os.path.join(path, file)
+		except Exception as e:
+			raise e
+
+	@staticmethod
+	def scan_prev(path:str, first:re, prev:re) -> str | None:
+		try:
+			files = os.listdir(path)
+			files.reverse()
+			found = False
+			for file in files:
+				if found is False and re.match(first, file):
+					print(f"first: {file}")
+					found = True
+					continue
+				if found is True and re.match(prev, file):
+					print(f"prev: {file}")
+					return os.path.join(path, file)
+		except Exception as e:
+			raise e
+
+	@staticmethod
 	def open(path:str) -> list[str]:
 		try:
 			return os.listdir(path)
@@ -352,5 +396,18 @@ class Dest:
 			try:
 				with open(file, "w+") as f:
 					json.dump(data, f, indent='\t')
+			except Exception as e:
+				raise e
+
+		@staticmethod
+		def print(data) -> None:
+			try:
+				print(
+					json.dumps(
+						data,
+						indent=4,
+						default=str
+					)
+				)
 			except Exception as e:
 				raise e
