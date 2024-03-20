@@ -192,7 +192,7 @@ class Graph(commands.Cog, name="Graph"):
 				# prepare the data for the graph
 				for _lap, _cars in enumerate(race["laps"]):
 					if _lap == 0:
-						for _car in _cars:
+						for _car in race["positions"]:
 							team = cars.get(_car["carId"], {})
 							if _car["carId"] not in showCars:
 								continue
@@ -243,15 +243,15 @@ class Graph(commands.Cog, name="Graph"):
 				self.fig_line_update_defaults(fig, config, race)
 				# add a gray box on the first lap
 				fig.add_vrect(
-					x0 = min(x),
-					x1 = min(x) + 1,
+					x0 = 1,
+					x1 = 2,
 					fillcolor = "rgb(64,64,64)",
 					opacity = 0.2,
 					layer = "below",
 					line_width = 0,
 				),
 				fig.add_annotation(
-					x = min(x) + 0.5,
+					x = 1.5,
 					y = (fastest_laptime_ms + slowest_laptime_ms) / 2,
 					text = label["bug_start_laptimes"],
 					showarrow = False,
@@ -375,7 +375,7 @@ class Graph(commands.Cog, name="Graph"):
 		"""
 		try:
 			async with ctx.typing():
-				date, time, _, _, _, _ = ACC.parseRaceInput(input)
+				date, time, heat, top, numbers, _ = ACC.parseRaceInput(input)
 				print(f"positions date: {date}\ntime: {time}")
 				temp = self.bot.getTemp("results")
 				session = ACC.session(
@@ -423,23 +423,54 @@ class Graph(commands.Cog, name="Graph"):
 				y = []
 				car = []
 				cars = race.get("cars", {})
+
+				showCars:list = []
+				if top is not None and len(top) > 0:
+					print(f"top {top}")
+					for position, _car in enumerate(race["positions"]):
+						if position <= top[1]-1 and position >= top[0]-1:
+							print(f"	{_car['carId']}")
+							showCars.append(_car["carId"])
+				if numbers is not None and len(numbers) > 0:
+					for carId, _car in cars.items():
+						if _car["number"] in numbers:
+							showCars.append(carId)
+				if len(showCars) == 0:
+					showCars = list(cars.keys())
+				showCars = list(set(showCars))
+				print("showCars")
+				for carId in showCars:
+					print(f"carId: {carId} as #{cars.get(carId, {}).get('number', '0')}")
+				carsTotal = len(race.get("positions", []))
 				for _lap, lap in enumerate(race["laps"]):
 					# if _lap is zero, then get the starting positions from quali results
 					if _lap == 0 and quali is not None and len(quali.get("positions", [])) > 0:
-						for position, _car in enumerate(quali.get("positions", [])):
-							x.append(_lap + 1)
+						for position, _car in enumerate(race.get("positions", [])):
+							x.append(-1)
 							y.append(position + 1)
+							car.append(
+								f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.carTeam(cars.get(_car['carId']))}",
+							)
+						for position, _car in enumerate(quali.get("positions", [])):
+							x.append(0)
+							x.append(1)
+							y.append(position + 1)
+							y.append(position + 1)
+							car.append(
+								f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.carTeam(cars.get(_car['carId']))}",
+							)
 							car.append(
 								f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.carTeam(cars.get(_car['carId']))}",
 							)
 						continue
 					# get
 					for position, _car in enumerate(lap):
-						x.append(_lap + 1) # _car["lap"]
-						y.append(position + 1) # _car["position"]
-						car.append(
-							f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.carTeam(cars.get(_car['carId']))}",
-						)
+						if _car["carId"] in showCars:
+							x.append(_lap + 1) # _car["lap"]
+							y.append(position + 1) # _car["position"]
+							car.append(
+								f"#{cars.get(_car['carId'], {}).get('number', '0')} {ACC.carTeam(cars.get(_car['carId']))}",
+							)
 				df = pd.DataFrame({
 					"lap": x,
 					"position": y,
@@ -461,15 +492,15 @@ class Graph(commands.Cog, name="Graph"):
 				)
 				self.fig_line_update_defaults(fig, config, race)
 				fig.add_vrect(
-					x0 = min(x),
-					x1 = min(x) + 1,
+					x0 = 1,
+					x1 = 2,
 					fillcolor = "rgb(64,64,64)",
 					opacity = 0.2,
 					layer = "below",
 					line_width = 0,
 				),
 				fig.add_annotation(
-					x = min(x) + 0.5,
+					x = 1.5,
 					# get the middle of the y axis
 					y = (max(y) + min(y)) / 2,
 					text = label["bug_start_positions"],
@@ -481,8 +512,13 @@ class Graph(commands.Cog, name="Graph"):
 					),
 				)
 				fig.update_layout(
+					xaxis = dict(
+						range = [1, race['session']['laps']],
+					),
 					yaxis = dict(
 						autorange = "reversed",
+						tickmode = "array",
+						tickvals = list(range(1, carsTotal + 1)),
 					)
 				)
 				fig.write_image(
