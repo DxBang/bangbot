@@ -99,7 +99,7 @@ class Event(commands.Cog, name="Event Management"):
 				bot = True,
 			)
 			embed.set_footer(
-				text = f"Powered by {self.bot.__POWERED_BY__}",
+				text = self.bot.__POWERED_BY__,
 			)
 			embed.set_author(
 				name = ctx.guild.name,

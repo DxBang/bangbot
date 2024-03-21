@@ -45,7 +45,7 @@ class Help(commands.Cog, name="Help Command"):
 						bot = True,
 					)
 					embed.set_footer(
-						text = f"Powered by {self.bot.__POWERED_BY__}",
+						text = self.bot.__POWERED_BY__,
 					)
 					return await ctx.send(
 						embed=embed
@@ -60,7 +60,7 @@ class Help(commands.Cog, name="Help Command"):
 								bot = True,
 							)
 							embed.set_footer(
-								text = f"Powered by {self.bot.__POWERED_BY__}",
+								text = self.bot.__POWERED_BY__,
 							)
 							return await ctx.send(
 								embed=embed
@@ -140,7 +140,7 @@ class Help(commands.Cog, name="Help Command"):
 						inline = False,
 					)
 			embed.set_footer(
-				text = f"Powered by {self.bot.__POWERED_BY__}",
+				text = self.bot.__POWERED_BY__,
 			)
 			await ctx.send(
 				embed = embed

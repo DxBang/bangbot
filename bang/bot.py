@@ -85,7 +85,7 @@ class Bot(commands.Bot):
 			self.__name__ = "BangBot"
 			with open('.version', 'r') as f:
 				self.__version__ = f.read().strip()
-			self.__POWERED_BY__ = "Bang Systems"
+			self.__POWERED_BY__ = "Powered by Bang Systems"
 			# print in white
 			cprint(f"{self.__name__} v{self.__version__} (discord.py v{discord.__version__}) (Python v{platform.python_version()})", "blue")
 			print("Loading config.json")

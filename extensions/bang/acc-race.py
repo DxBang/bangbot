@@ -127,7 +127,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 					bot = True,
 				)
 				embed.set_footer(
-					text = f"Powered by {self.bot.__POWERED_BY__}",
+					text = self.bot.__POWERED_BY__,
 				)
 				Dest.remove(file)
 				return await ctx.send(
@@ -260,7 +260,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 							inline = False,
 						)
 			embed.set_footer(
-				text = f"Powered by {self.bot.__POWERED_BY__}",
+				text = self.bot.__POWERED_BY__,
 			)
 			return await ctx.send(
 				content = f"🏎️",
@@ -310,7 +310,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 						bot = True,
 					)
 					embed.set_footer(
-						text = f"Powered by {self.bot.__POWERED_BY__}",
+						text = self.bot.__POWERED_BY__,
 					)
 					return await ctx.send(
 						embed = embed
@@ -361,7 +361,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 					bot = True,
 				)
 				embed.set_footer(
-					text = f"Powered by {self.bot.__POWERED_BY__}",
+					text = self.bot.__POWERED_BY__,
 				)
 				return await ctx.send(
 					embed = embed
@@ -385,7 +385,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 				bot = True,
 			)
 			embed.set_footer(
-				text = f"Powered by {self.bot.__POWERED_BY__}",
+				text = self.bot.__POWERED_BY__,
 			)
 			limit = 15
 			for _date, _time in _dates.items():
@@ -564,6 +564,109 @@ class ACCRace(commands.Cog, name="Race Results"):
 			)
 
 	@commands.command(
+		description = "Create a session",
+		usage = "create [session] [number of races]",
+		hidden = True,
+	)
+	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
+	async def create(self, ctx:commands.Context, session:str, races:int = 1) -> None:
+		"""
+		Create a session
+		```
+		{ctx.prefix}create S1 10
+		{ctx.prefix}create S2 12
+		{ctx.prefix}create "Special Event" 3
+		```
+		"""
+		try:
+			if session is None:
+				raise ValueError("Missing a session name.")
+			temp = self.bot.getTemp("sessions")
+			# create the session
+			"""
+			session = [
+				"241231_235959_R",
+				"241231_235959_Q",
+				None,
+				None,
+				None,
+				None,
+				None,
+			]
+			"""
+			# create the session as a list of None values with the length of races
+			session = [None for _ in range(races)]
+			# save the session to a file
+			Dest.json.save(
+				Dest.join(temp, session),
+				session
+			)
+			embed = self.bot.embed(
+				ctx = ctx,
+				title = "Session",
+				description = f"Session **{session}** created.",
+				bot = True,
+			)
+			embed.set_footer(
+				text = self.bot.__POWERED_BY__,
+			)
+		except ValueError as e:
+			await self.bot.warn(
+				e,
+				ctx = ctx,
+			)
+		except Exception as e:
+			await self.bot.error(
+				e,
+				ctx = ctx,
+			)
+
+
+	@commands.command(
+		description = "The session results",
+		usage = "session [session]",
+		hidden = True,
+		aliases = [
+			"all",
+		],
+	)
+	@commands.guild_only()
+	@commands.has_permissions(moderate_members=True)
+	async def session(self, ctx:commands.Context, session:str = None) -> None:
+		"""
+		Get the session results
+		```
+		{ctx.prefix}session S2
+		{ctx.prefix}session q
+		{ctx.prefix}session fp
+		```
+		"""
+		try:
+			if session is None:
+				raise ValueError("Session must be one of **FP**, **Q**, **R**.")
+			if session.lower() not in ["fp", "q", "r"]:
+				raise ValueError("Session must be one of **FP**, **Q**, **R**.")
+			await self.handleList(
+				ctx = ctx,
+				session = session,
+				date = "*",
+				time = "*",
+				sync = False,
+			)
+		except ValueError as e:
+			await self.bot.warn(
+				e,
+				ctx = ctx,
+			)
+		except Exception as e:
+			traceback.print_exc()
+			await self.bot.error(
+				e,
+				ctx = ctx,
+			)
+
+	@commands.command(
 		description = "Clean up the FTP from empty result files",
 		usage = "clean",
 		hidden = True,
@@ -619,7 +722,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 				bot = True,
 			)
 			embed.set_footer(
-				text = f"Powered by {self.bot.__POWERED_BY__}",
+				text = self.bot.__POWERED_BY__,
 			)
 			return await ctx.send(
 				embed = embed
