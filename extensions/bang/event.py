@@ -15,6 +15,31 @@ class Event(commands.Cog, name="Event Management"):
 		except Exception as e:
 			raise e
 
+	async def convertEmoji(self, ctx:commands.Context, emoji:discord.Emoji|discord.PartialEmoji|str) -> discord.Emoji:
+		try:
+			if isinstance(emoji, discord.Emoji):
+				return emoji
+			if isinstance(emoji, discord.PartialEmoji):
+				return emoji
+			# check if the emoji is a custom emoji
+			if emoji.startswith(":") and emoji.endswith(":"):
+				return discord.utils.get(
+					ctx.guild.emojis,
+					name=emoji.strip(":")
+				)
+			# check if the emoji is a custom emoji with an ID
+			if emoji.startswith("<") and emoji.endswith(">"):
+				return discord.utils.get(
+					ctx.guild.emojis,
+					id=int(emoji.strip("<").strip(">").split(":")[-1])
+				)
+			# return the default emoji
+			return discord.PartialEmoji(
+				name = emoji,
+			)
+		except commands.BadArgument:
+			raise commands.BadArgument(f"Invalid emoji: {emoji}")
+
 	# @commands.hybrid_command()
 	@commands.command(
 		description = "Create an event for people to sign up for with reactions for going, maybe, and not going.",
@@ -86,14 +111,12 @@ class Event(commands.Cog, name="Event Management"):
 			if isinstance(roles, list) and len(roles) > 0:
 				mentions.extend([role.mention for role in ctx.guild.roles if role.id in roles])
 			label = self.bot.getConfig(ctx.guild, "label", "event")
+			# fix emojis
+			for l in label:
+				if isinstance(label[l], dict):
+					label[l]["emoji"] = await self.convertEmoji(ctx, label[l]["emoji"])
 			config = self.bot.getConfig(ctx.guild, "event")
-			if date is not None and time is not None:
-				epoch = ACC.dateToEpoch(
-					date,
-					time,
-					self.bot.getConfig(ctx.guild, "timezone")
-				)
-			if date is not None and time is None:
+			if date is not None:
 				epoch = ACC.dateToEpoch(
 					date,
 					time,
@@ -170,11 +193,16 @@ class Event(commands.Cog, name="Event Management"):
 				ctx = ctx,
 			)
 
-	def build_embed_fields(self, embed:discord.Embed, member:discord.Member, action:str, emoji:discord.Emoji) -> tuple[discord.Embed, str]:
+	async def handleReaction(self, ctx:commands.Context, member:discord.Member, action:str, emoji:discord.Emoji|discord.PartialEmoji|str) -> tuple[discord.Embed, str]:
 		"""Build a list of embed fields from an event sign up."""
 		try:
-			print(f"build_embed_fields: {embed}, {member}, {action}, {emoji}")
+			embed = ctx.message.embeds[0]
+			print(f"handleReaction: {embed}, {member}, {action}, {type(emoji)} {emoji}")
 			label = self.bot.getConfig(member.guild, "label", "event")
+			emoji = str(await self.convertEmoji(ctx, emoji))
+			for l in label:
+				if isinstance(label[l], dict):
+					label[l]["emoji"] = str(await self.convertEmoji(ctx, label[l]["emoji"]))
 			first = 0
 			# check if the embed has date, time, and countdown fields
 			if label['date']['emoji'] in embed.fields[0].name and\
@@ -219,18 +247,15 @@ class Event(commands.Cog, name="Event Management"):
 						declines.extend(field.value.strip().split("\n"))
 				else:
 					print("error")
-			#print(f"accepts:\n{accepts}")
-			#print(f"maybes:\n{maybes}")
-			#print(f"declines:\n{declines}")
 			if action == "add":
-				print(f"add: {emoji.name}")
+				print(f"add: {emoji}")
 				valid_reaction = []
-				for er in label:
-					if isinstance(label[er], dict):
-						valid_reaction.append(label[er]["emoji"])
-				if emoji.name not in valid_reaction:
+				for k in ["accept", "maybe", "decline"]:
+					if isinstance(label[k], dict):
+						valid_reaction.append(label[k]["emoji"])
+				if emoji not in valid_reaction:
 					return embed, "remove"
-				if emoji.name == label['accept']['emoji']:
+				if emoji == label['accept']['emoji']:
 					action = "update"
 					accepts.append(member.mention)
 					# remove from maybes and declines
@@ -238,7 +263,7 @@ class Event(commands.Cog, name="Event Management"):
 						maybes.remove(member.mention)
 					if member.mention in declines:
 						declines.remove(member.mention)
-				elif emoji.name == label['maybe']['emoji']:
+				elif emoji == label['maybe']['emoji']:
 					action = "update"
 					maybes.append(member.mention)
 					# remove from accepts and declines
@@ -246,7 +271,7 @@ class Event(commands.Cog, name="Event Management"):
 						accepts.remove(member.mention)
 					if member.mention in declines:
 						declines.remove(member.mention)
-				elif emoji.name == label['decline']['emoji']:
+				elif emoji == label['decline']['emoji']:
 					action = "update"
 					declines.append(member.mention)
 					# remove from accepts and maybes
@@ -257,16 +282,16 @@ class Event(commands.Cog, name="Event Management"):
 				else:
 					return embed, "ignore"
 			elif action == "remove":
-				print(f"remove: {emoji.name}")
-				if emoji.name == label['accept']['emoji'] and member.mention in accepts:
+				print(f"remove: {emoji}")
+				if emoji == label['accept']['emoji'] and member.mention in accepts:
 					print(f"found in accepts")
 					action = "update"
 					accepts.remove(member.mention)
-				elif emoji.name == label['maybe']['emoji'] and member.mention in maybes:
+				elif emoji == label['maybe']['emoji'] and member.mention in maybes:
 					print(f"found in maybes")
 					action = "update"
 					maybes.remove(member.mention)
-				elif emoji.name == label['decline']['emoji'] and member.mention in declines:
+				elif emoji == label['decline']['emoji'] and member.mention in declines:
 					print(f"found in declines")
 					action = "update"
 					declines.remove(member.mention)
@@ -313,9 +338,14 @@ class Event(commands.Cog, name="Event Management"):
 	async def on_raw_reaction_add(self, payload:discord.RawReactionActionEvent) -> None:
 		"""Add a user to the list of people going/maybe/not going to an event."""
 		try:
-			message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-			guild = self.bot.get_guild(payload.guild_id)
-			member = guild.get_member(payload.user_id)
+			print(f"on_raw_reaction_add: {type(payload.emoji)} {payload.emoji}")
+			message = await self.bot.get_channel(
+				payload.channel_id
+			).fetch_message(
+				payload.message_id
+			)
+			member = message.guild.get_member(payload.user_id)
+			ctx = await self.bot.get_context(message)
 			if member.id == self.bot.user.id:
 				# bot predefined reaction
 				return
@@ -344,7 +374,12 @@ class Event(commands.Cog, name="Event Management"):
 								break
 					if not found:
 						return await message.remove_reaction(payload.emoji, member)
-			embed, action = self.build_embed_fields(message.embeds[0], member, "add", payload.emoji)
+			embed, action = await self.handleReaction(
+				ctx,
+				member,
+				"add",
+				payload.emoji,
+			)
 			print(f"add action: {action}")
 			if action == "remove":
 				return await message.remove_reaction(payload.emoji, member)
@@ -353,13 +388,12 @@ class Event(commands.Cog, name="Event Management"):
 					embed = embed,
 				)
 			for reaction in message.reactions:
-				if reaction.emoji == payload.emoji.name:
+				if str(reaction.emoji) == str(payload.emoji):
 					continue
 				members = [user async for user in reaction.users()]
 				if member in members:
 					await message.remove_reaction(reaction.emoji, member)
 		except discord.HTTPException as e:
-			ctx = await self.bot.get_context(message)
 			if ctx:
 				await ctx.send(
 					"HTTPException: {e}",
@@ -368,7 +402,6 @@ class Event(commands.Cog, name="Event Management"):
 					reference = message,
 				)
 		except discord.RateLimited as e:
-			ctx = await self.bot.get_context(message)
 			if ctx: # can we even report this to the user?
 				await ctx.send(
 					"RateLimited: {e}",
@@ -384,9 +417,13 @@ class Event(commands.Cog, name="Event Management"):
 	async def on_raw_reaction_remove(self, payload:discord.RawReactionActionEvent) -> None:
 		"""Remove a user from the list of people going to an event."""
 		try:
-			message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-			guild = self.bot.get_guild(payload.guild_id)
-			member = guild.get_member(payload.user_id)
+			message = await self.bot.get_channel(
+				payload.channel_id
+			).fetch_message(
+				payload.message_id
+			)
+			member = message.guild.get_member(payload.user_id)
+			ctx = await self.bot.get_context(message)
 			#user = self.bot.get_user(payload.user_id)
 			if member.id == self.bot.user.id:
 				return
@@ -394,7 +431,12 @@ class Event(commands.Cog, name="Event Management"):
 				return
 			if len(message.embeds[0].fields) < 3:
 				return
-			embed, action = self.build_embed_fields(message.embeds[0], member, "remove", payload.emoji)
+			embed, action = await self.handleReaction(
+				ctx,
+				member,
+				"remove",
+				payload.emoji,
+			)
 			print(f"remove action: {action}")
 			if action == "update":
 				await message.edit(
@@ -403,29 +445,6 @@ class Event(commands.Cog, name="Event Management"):
 		except Exception as e:
 			print(f"error: {e}")
 			raise e
-
-	"""
-	@commands.command(
-		description = "Epoch date.",
-		hidden = True,
-		usage = "epoch <date>",
-	)
-	@commands.guild_only()
-	@commands.has_permissions(moderate_members=True)
-	async def epoch(self, ctx:commands.Context, date:str, time:str) -> None:
-		"/""Convert a date to epoch."/""
-		try:
-			tz = self.bot.getConfig(ctx.guild, "timezone")
-			epoch = ACC.dateToEpoch(date, time, tz)
-			await ctx.send(
-				f"<t:{epoch}:R>",
-			)
-		except Exception as e:
-			await self.bot.error(
-				e,
-				ctx = ctx,
-			)
-	"""
 
 
 async def setup(bot:bang.Bot) -> None:
