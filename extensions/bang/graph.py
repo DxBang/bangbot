@@ -104,13 +104,12 @@ class Graph(commands.Cog, name="Graph"):
 		try:
 			print(f"laptimes")
 			async with ctx.typing():
-				date, time, heat, top, numbers, _ = ACC.parseRaceInput(input)
-				print(f"positions")
-				print(f"\tdate: {type(date)} {date}")
-				print(f"\ttime: {type(time)} {time}")
-				print(f"\theat: {type(heat)} {heat}")
-				print(f"\ttop: {type(top)} {top}")
-				print(f"\tnumber: {type(numbers)} {numbers}")
+				date, time, _, top, numbers, _ = ACC.parseRaceInput(input)
+				print(f"laptimes")
+				print(f"\tdate:    {type(date)} {date}")
+				print(f"\ttime:    {type(time)} {time}")
+				print(f"\ttop:     {type(top)} {top}")
+				print(f"\tnumbers: {type(numbers)} {numbers}")
 				temp = self.bot.getTemp("results")
 				session = ACC.session(
 					temp,
@@ -122,12 +121,14 @@ class Graph(commands.Cog, name="Graph"):
 					raise ValueError("No results found for the given date (and time).")
 				dt = session.get("info", {}).get("datetime", None)
 				# get date and time and session from filename: 240309_220433_R.json.result.json
-				file = f"{dt.strftime('%y%m%d')}_{dt.strftime('%H%M%S')}_{heat}.result.json"
+				file = f"{dt.strftime('%y%m%d')}_{dt.strftime('%H%M%S')}_R.result.json"
 				print(f"file: {file}")
 				pngFile = Dest.extension(
 					Dest.suffix(
 						Dest.filename(file),
-						suffix=".laptimes",
+						suffix=f".laptimes"\
+							f".{'-'.join(map(str, top)) if len(top) > 0 else 'all'}"\
+							f".{'-'.join(map(str, numbers)) if len(numbers) > 0 else 'all'}",
 					), 'png'
 				)
 				print(f"pngFile: {pngFile}")
@@ -176,7 +177,7 @@ class Graph(commands.Cog, name="Graph"):
 				showCars = list(set(showCars))
 				print("showCars")
 				for carId in showCars:
-					print(f"carId: {carId} as #{cars.get(carId, {}).get('number', '0')}")
+					print(f"carId: {carId} as #{cars.get(carId, {}).get('number', 0)}")
 				# calculate the average laptime for each car and set that to the first lap
 				for carId in showCars:
 					lapTimes:list[int] = []
@@ -329,8 +330,14 @@ class Graph(commands.Cog, name="Graph"):
 						Dest.join(temp, pngFile)
 					)
 				)
+				"""
 				Dest.json.save(
-					Dest.join(temp, f"{dt.strftime('%y%m%d')}_{dt.strftime('%H%M%S')}_{heat}.result.laptimes.json"),
+					Dest.join(
+						temp,
+						Dest.extension(
+							Dest.basename(pngFile), 'json'
+						)
+					),
 					{
 						"x": x,
 						"y": y,
@@ -338,6 +345,7 @@ class Graph(commands.Cog, name="Graph"):
 						"car": car,
 					}
 				)
+				"""
 		except ValueError as e:
 			traceback.print_exc()
 			await self.bot.warn(
@@ -375,8 +383,12 @@ class Graph(commands.Cog, name="Graph"):
 		"""
 		try:
 			async with ctx.typing():
-				date, time, heat, top, numbers, _ = ACC.parseRaceInput(input)
-				print(f"positions date: {date}\ntime: {time}")
+				date, time, _, top, numbers, _ = ACC.parseRaceInput(input)
+				print(f"positions")
+				print(f"\tdate:    {type(date)} {date}")
+				print(f"\ttime:    {type(time)} {time}")
+				print(f"\ttop:     {type(top)} {top}")
+				print(f"\tnumbers: {type(numbers)} {numbers}")
 				temp = self.bot.getTemp("results")
 				session = ACC.session(
 					temp,
@@ -394,7 +406,9 @@ class Graph(commands.Cog, name="Graph"):
 				pngFile = Dest.extension(
 					Dest.suffix(
 						Dest.filename(file),
-						'.positions'
+						suffix=f".positions"\
+							f".{'-'.join(map(str, top)) if len(top) > 0 else 'all'}"\
+							f".{'-'.join(map(str, numbers)) if len(numbers) > 0 else 'all'}",
 					), 'png'
 				)
 				print(f"pngFile: {pngFile}")
@@ -423,7 +437,6 @@ class Graph(commands.Cog, name="Graph"):
 				y = []
 				car = []
 				cars = race.get("cars", {})
-
 				showCars:list = []
 				if top is not None and len(top) > 0:
 					print(f"top {top}")
@@ -440,7 +453,7 @@ class Graph(commands.Cog, name="Graph"):
 				showCars = list(set(showCars))
 				print("showCars")
 				for carId in showCars:
-					print(f"carId: {carId} as #{cars.get(carId, {}).get('number', '0')}")
+					print(f"carId: {carId} as #{cars.get(carId, {}).get('number', 0)}")
 				carsTotal = len(race.get("positions", []))
 				for _lap, lap in enumerate(race["laps"]):
 					# if _lap is zero, then get the starting positions from quali results
@@ -530,14 +543,22 @@ class Graph(commands.Cog, name="Graph"):
 						Dest.join(temp, pngFile)
 					)
 				)
+				"""
 				Dest.json.save(
-					Dest.join(temp, f"{dt.strftime('%y%m%d')}_{dt.strftime('%H%M%S')}_R.result.positions.json"),
+					Dest.join(
+						temp,
+						Dest.extension(
+							Dest.basename(pngFile), 'json'
+						)
+					),
 					{
 						"x": x,
 						"y": y,
 						"car": car,
 					}
 				)
+				"""
+
 		except ValueError as e:
 			traceback.print_exc()
 			await self.bot.warn(
