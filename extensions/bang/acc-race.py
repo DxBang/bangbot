@@ -92,7 +92,15 @@ class ACCRace(commands.Cog, name="Race Results"):
 			data = Dest.json.load(local_filename)
 			if len(data["laps"]) == 0:
 				print(f"delete: {filename}")
-				Dest.rename(local_filename, Dest.backup(local_filename))
+				if not Dest.exists(Dest.backup(local_filename)):
+					Dest.rename(
+						local_filename,
+						Dest.backup(local_filename)
+					)
+				else:
+					Dest.remove(
+						local_filename
+					)
 				delete_files.append(filename)
 				#self.ftp.delete(filename)
 		self.ftp.quit()

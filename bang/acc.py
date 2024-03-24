@@ -659,6 +659,8 @@ class ACC:
 			]
 			for penalty in _penalties:
 				for _penalty in data.get(penalty.get("field"), []):
+					if _penalty.get("penalty") == "None":
+						continue
 					carId = _penalty.get("carId")
 					if carId not in penalties.get(penalty.get("type")):
 						penalties.get(penalty.get("type")).update({
