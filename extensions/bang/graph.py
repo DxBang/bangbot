@@ -127,19 +127,19 @@ class Graph(commands.Cog, name="Graph"):
 				pngFile = Dest.extension(
 					Dest.suffix(
 						Dest.filename(file),
-						".laptimes",
+						suffix=".laptimes",
 					), 'png'
 				)
 				print(f"pngFile: {pngFile}")
 				# check if png file exists
-				"""
+				#"""
 				if Dest.exists(Dest.join(temp, pngFile)):
 					return await ctx.send(
 						file=discord.File(
 							Dest.join(temp, pngFile)
 						)
 					)
-				"""
+				#"""
 				# prepare the graph
 				label = self.bot.getConfig(ctx.guild, "label", "graph")
 				config = self.bot.getConfig(ctx.guild, "graph")
@@ -394,19 +394,19 @@ class Graph(commands.Cog, name="Graph"):
 				pngFile = Dest.extension(
 					Dest.suffix(
 						Dest.filename(file),
-						'.laptimes'
+						'.positions'
 					), 'png'
 				)
 				print(f"pngFile: {pngFile}")
 				# check if png file exists
-				"""
+				#"""
 				if Dest.exists(Dest.join(temp, pngFile)):
 					return await ctx.send(
 						file=discord.File(
 							Dest.join(temp, pngFile)
 						)
 					)
-				"""
+				#"""
 				# prepare the graph
 				label = self.bot.getConfig(ctx.guild, "label", "graph")
 				config = self.bot.getConfig(ctx.guild, "graph")
