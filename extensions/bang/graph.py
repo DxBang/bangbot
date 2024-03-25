@@ -57,10 +57,14 @@ class Graph(commands.Cog, name="Graph"):
 				template = config['template'],
 			)
 			fig.update_traces(
-				line = {
-					'width': 5,
-					'shape': 'spline',
-				}
+				line = dict(
+					width = 5,
+					shape = 'spline',
+					smoothing = 0.9,
+				),
+				marker = dict(
+					size = 18,
+				)
 			)
 			if config['logo']['source'] != "" and config['logo']['source'] is not None:
 				logo = Dest.file(config['logo']['source'])
@@ -501,7 +505,8 @@ class Graph(commands.Cog, name="Graph"):
 						"position": label["positions"],
 						"lap": label["laps"],
 						"car": label["drivers"],
-					}
+					},
+					markers = True,
 				)
 				self.fig_line_update_defaults(fig, config, race)
 				fig.add_vrect(
