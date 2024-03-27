@@ -137,7 +137,6 @@ class ACCRace(commands.Cog, name="Race Results"):
 				embed.set_footer(
 					text = self.bot.__POWERED_BY__,
 				)
-				Dest.remove(file)
 				return await ctx.send(
 					embed = embed
 				)

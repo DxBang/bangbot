@@ -4,6 +4,7 @@ from discord.ext import commands
 import traceback
 from bang.acc import ACC
 from bang.human import Human
+import asyncio
 
 class Event(commands.Cog, name="Event Management"):
 	__slots__ = (
@@ -164,19 +165,15 @@ class Event(commands.Cog, name="Event Management"):
 			mention = " ".join(mentions)
 			files = None
 			if len(ctx.message.attachments) > 0:
+				file = await self.bot.downloadAttachment(ctx.message.attachments[0])
+				files = [file]
 				if config["attachment"]["thumbnail"]:
 					embed.set_thumbnail(
-						url = ctx.message.attachments[0].url
-					)
-				if config["attachment"]["download"] and config["attachment"]["image"]:
-					file = await self.bot.downloadAttachment(ctx.message.attachments[0])
-					files = [file]
-					embed.set_image(
 						url = "attachment://" + file.filename
 					)
-				elif config["attachment"]["image"]:
+				if config["attachment"]["image"]:
 					embed.set_image(
-						url = ctx.message.attachments[0].url
+						url = "attachment://" + file.filename
 					)
 			await ctx.message.delete()
 			message = await ctx.send(
@@ -386,6 +383,7 @@ class Event(commands.Cog, name="Event Management"):
 			if action == "update":
 				await message.edit(
 					embed = embed,
+					attachments = message.attachments,
 				)
 			for reaction in message.reactions:
 				if str(reaction.emoji) == str(payload.emoji):
@@ -441,11 +439,49 @@ class Event(commands.Cog, name="Event Management"):
 			if action == "update":
 				await message.edit(
 					embed = embed,
+					attachments = message.attachments,
 				)
 		except Exception as e:
 			print(f"error: {e}")
 			raise e
 
+
+	@commands.command()
+	async def test(self, ctx:commands.Context) -> None:
+		try:
+			file = discord.File('image/dems2024-logo-wht.png', filename='new_image.png')
+			embed = discord.Embed(
+				title="Image Test",
+				description="Is this a bug?",
+			)
+			embed.set_image(url="attachment://new_image.png")
+			embed.add_field(
+				name="Status",
+				value="New",
+			)
+			message = await ctx.send(
+				file=file,
+				embed=embed,
+			)
+			async with ctx.typing():
+				await asyncio.sleep(5)
+				embed = message.embeds[0]
+				embed.set_field_at(
+					0,
+					name="Status",
+					value="Edited...",
+				)
+				#embed.set_image(
+				#	url=message.embeds[0].image.url,
+				#)
+				await message.edit(
+					embed=embed,
+					attachments=message.attachments,
+				)
+				return
+		except Exception as e:
+			print(f"error: {e}")
+			raise e
 
 async def setup(bot:bang.Bot) -> None:
 	try:

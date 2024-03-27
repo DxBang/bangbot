@@ -30,7 +30,7 @@
 			"sans": ["LSANS.TTF", 24]
 		},
 		"points": {
-			"fastestlap": 2,
+			"fastestlap": 1,
 			"positions": [
 				25,
 				18,
@@ -213,7 +213,6 @@
 
 		],
 		"attachment": {
-			"download": false,
 			"image": true,
 			"thumbnail": false
 		},
