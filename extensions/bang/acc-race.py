@@ -224,7 +224,8 @@ class ACCRace(commands.Cog, name="Race Results"):
 						)
 					place += 1
 			# show fastest lap
-			if session['best']['lap']['driver'] is not None:
+					print(session['best']['lap'])
+			if session['best']['lap'] is not None:
 				bestLap = session['best']['lap']
 				bestCar = cars.get(bestLap['carId'])
 				bestDriver = f"**{ACC.driverName(bestCar.get('drivers')[bestLap['driverId']])}**"

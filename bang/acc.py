@@ -531,10 +531,7 @@ class ACC:
 				"laps": leader.get("timing").get("lapCount"),
 				"time": leader.get("timing").get("totalTime"),
 				"best": {
-					"lap": {
-						"time": bestLapTime,
-						"driver": bestLapDriver
-					},
+					"lap": None,
 					"split": data.get("sessionResult").get("bestSplits", []),
 				},
 				"type": {
