@@ -4,6 +4,7 @@ from discord.ext import commands
 import traceback
 from bang.acc import ACC
 from bang.human import Human
+from bang.dest import Dest
 import asyncio
 
 class Event(commands.Cog, name="Event Management"):
@@ -93,10 +94,11 @@ class Event(commands.Cog, name="Event Management"):
 			delete = delete[::-1]
 			for idx in delete:
 				del description[idx]
+			description = "\n".join(description).strip()
 			embed = self.bot.embed(
 				ctx = ctx,
 				title = title,
-				description = "\n".join(description).strip(),
+				description = description,
 				bot = True,
 			)
 			embed.set_footer(
@@ -184,6 +186,22 @@ class Event(commands.Cog, name="Event Management"):
 			await message.add_reaction(label['accept']['emoji'])
 			await message.add_reaction(label['maybe']['emoji'])
 			await message.add_reaction(label['decline']['emoji'])
+			file = Dest.join(
+				self.bot.getTemp("events"),
+				f"{message.id}.json",
+			)
+			Dest.json.save(
+				file,
+				{
+					"channel": message.channel.id,
+					"title": title,
+					"description": description,
+					"epoch": epoch,
+					"accept": [],
+					"maybe": [],
+					"decline": [],
+				}
+			)
 		except Exception as e:
 			await self.bot.error(
 				e,
@@ -195,6 +213,15 @@ class Event(commands.Cog, name="Event Management"):
 		try:
 			embed = ctx.message.embeds[0]
 			print(f"handleReaction: {embed}, {member}, {action}, {type(emoji)} {emoji}")
+			file = Dest.join(
+				self.bot.getTemp("events"),
+				f"{ctx.message.id}.json",
+			)
+			if Dest.exists(file) is False:
+				return embed, "ignore"
+			data = Dest.json.load(file)
+			if data is None:
+				return embed, "ignore"
 			label = self.bot.getConfig(member.guild, "label", "event")
 			emoji = str(await self.convertEmoji(ctx, emoji))
 			for l in label:
@@ -225,25 +252,15 @@ class Event(commands.Cog, name="Event Management"):
 				"maybe": 1,
 				"decline": 2,
 			}
-			columns = len(column)
 			accepts = []
 			maybes = []
 			declines = []
-			print(f"first: {first}, columns: {columns}")
-			for idx, field in enumerate(embed.fields):
-				if idx < first:
-					continue
-				if (idx-first) % columns == column['accept']: # 0
-					if len(field.value.strip()) > 0:
-						accepts.extend(field.value.strip().split("\n"))
-				elif (idx-first) % columns == column['maybe']: # 1
-					if len(field.value.strip()) > 0:
-						maybes.extend(field.value.strip().split("\n"))
-				elif (idx-first) % columns == column['decline']: # 2
-					if len(field.value.strip()) > 0:
-						declines.extend(field.value.strip().split("\n"))
-				else:
-					print("error")
+			if "accept" in data:
+				accepts = data["accept"]
+			if "maybe" in data:
+				maybes = data["maybe"]
+			if "decline" in data:
+				declines = data["decline"]
 			if action == "add":
 				print(f"add: {emoji}")
 				valid_reaction = []
@@ -252,69 +269,81 @@ class Event(commands.Cog, name="Event Management"):
 						valid_reaction.append(label[k]["emoji"])
 				if emoji not in valid_reaction:
 					return embed, "remove"
-				if emoji == label['accept']['emoji']:
-					action = "update"
-					accepts.append(member.mention)
-					# remove from maybes and declines
-					if member.mention in maybes:
-						maybes.remove(member.mention)
-					if member.mention in declines:
-						declines.remove(member.mention)
-				elif emoji == label['maybe']['emoji']:
-					action = "update"
-					maybes.append(member.mention)
-					# remove from accepts and declines
-					if member.mention in accepts:
-						accepts.remove(member.mention)
-					if member.mention in declines:
-						declines.remove(member.mention)
-				elif emoji == label['decline']['emoji']:
-					action = "update"
-					declines.append(member.mention)
-					# remove from accepts and maybes
-					if member.mention in accepts:
-						accepts.remove(member.mention)
-					if member.mention in maybes:
-						maybes.remove(member.mention)
+				# check if the member.id is already in the list of accepts, maybes, or declines
+				action = "update"
+				if emoji == label['accept']['emoji'] and member.id not in [m['id'] for m in accepts]:
+					print(f"add accept: {member.display_name}")
+					accepts.append(
+						{
+							"id": member.id,
+							"name": member.display_name,
+						}
+					)
+					# remove the member from the maybes and declines list
+					if member.id in [m['id'] for m in maybes]:
+						maybes = [m for m in maybes if m['id'] != member.id]
+					if member.id in [m['id'] for m in declines]:
+						declines = [m for m in declines if m['id'] != member.id]
+				elif emoji == label['maybe']['emoji'] and member.id not in [m['id'] for m in maybes]:
+					print(f"add maybe: {member.display_name}")
+					maybes.append(
+						{
+							"id": member.id,
+							"name": member.display_name,
+						}
+					)
+					# remove the member from the accepts and declines list
+					if member.id in [m['id'] for m in accepts]:
+						accepts = [m for m in accepts if m['id'] != member.id]
+					if member.id in [m['id'] for m in declines]:
+						declines = [m for m in declines if m['id'] != member.id]
+				elif emoji == label['decline']['emoji'] and member.id not in [m['id'] for m in declines]:
+					print(f"add decline: {member.display_name}")
+					declines.append(
+						{
+							"id": member.id,
+							"name": member.display_name,
+						}
+					)
+					# remove the member from the accepts and maybes list
+					if member.id in [m['id'] for m in accepts]:
+						accepts = [m for m in accepts if m['id'] != member.id]
+					if member.id in [m['id'] for m in maybes]:
+						maybes = [m for m in maybes if m['id'] != member.id]
 				else:
 					return embed, "ignore"
 			elif action == "remove":
 				print(f"remove: {emoji}")
-				if emoji == label['accept']['emoji'] and member.mention in accepts:
-					print(f"found in accepts")
-					action = "update"
-					accepts.remove(member.mention)
-				elif emoji == label['maybe']['emoji'] and member.mention in maybes:
-					print(f"found in maybes")
-					action = "update"
-					maybes.remove(member.mention)
-				elif emoji == label['decline']['emoji'] and member.mention in declines:
-					print(f"found in declines")
-					action = "update"
-					declines.remove(member.mention)
+				action = "update"
+				if emoji == label['accept']['emoji'] and member.id in [m['id'] for m in accepts]:
+					accepts = [m for m in accepts if m['id'] != member.id]
+				elif emoji == label['maybe']['emoji'] and member.id in [m['id'] for m in maybes]:
+					maybes = [m for m in maybes if m['id'] != member.id]
+				elif emoji == label['decline']['emoji'] and member.id in [m['id'] for m in declines]:
+					declines = [m for m in declines if m['id'] != member.id]
 				else:
 					print(f"not found")
 					return embed, "ignore"
 			else:
 				return embed, "ignore"
 			# make unique
-			accepts = list(set(accepts))
-			maybes = list(set(maybes))
-			declines = list(set(declines))
+			#accepts = list(set(accepts))
+			#maybes = list(set(maybes))
+			#declines = list(set(declines))
 			# split the list into multiple lists if the list has more than items_limit members
-			accepts = [accepts[i:i + items_limit] for i in range(0, len(accepts), items_limit)]
-			maybes = [maybes[i:i + items_limit] for i in range(0, len(maybes), items_limit)]
-			declines = [declines[i:i + items_limit] for i in range(0, len(declines), items_limit)]
-			largest = max(len(accepts), len(maybes), len(declines), 1)
+			_accepts = [accepts[i:i + items_limit] for i in range(0, len(accepts), items_limit)]
+			_maybes = [maybes[i:i + items_limit] for i in range(0, len(maybes), items_limit)]
+			_declines = [declines[i:i + items_limit] for i in range(0, len(declines), items_limit)]
+			largest = max(len(_accepts), len(_maybes), len(_declines), 1)
 			# remove old fields
 			for r in range(len(embed.fields)-1, first-1, -1):
 				print(f"remove: {r}, {embed.fields[r].name}")
 				embed.remove_field(r)
 			# recreate the fields
 			for r in range(largest):
-				accept = accepts[r] if r < len(accepts) else []
-				maybe = maybes[r] if r < len(maybes) else []
-				decline = declines[r] if r < len(declines) else []
+				accept = _accepts[r] if r < len(_accepts) else []
+				maybe = _maybes[r] if r < len(_maybes) else []
+				decline = _declines[r] if r < len(_declines) else []
 				for col, members in enumerate([accept, maybe, decline]):
 					if col == column['accept']:
 						name = f"{label['accept']['emoji']} {label['accept']['name']}"
@@ -324,9 +353,17 @@ class Event(commands.Cog, name="Event Management"):
 						name = f"{label['decline']['emoji']} {label['decline']['name']}"
 					embed.add_field(
 						name = name,
-						value = "\n".join(members),
+						value = "\n".join([f"{member['name']}" for member in members]) if len(members) > 0 else "\u200b",
 						inline = True,
 					)
+			# save the data
+			data["accept"] = accepts
+			data["maybe"] = maybes
+			data["decline"] = declines
+			Dest.json.save(
+				file,
+				data
+			)
 			return embed, action
 		except Exception as e:
 			raise e
