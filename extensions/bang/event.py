@@ -169,11 +169,11 @@ class Event(commands.Cog, name="Event Management"):
 				files = [file]
 				if config["attachment"]["thumbnail"]:
 					embed.set_thumbnail(
-						url = "attachment://" + file.filename
+						url = f"attachment://{file.filename}"
 					)
 				if config["attachment"]["image"]:
 					embed.set_image(
-						url = "attachment://" + file.filename
+						url = f"attachment://{file.filename}"
 					)
 			await ctx.message.delete()
 			message = await ctx.send(

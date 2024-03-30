@@ -214,7 +214,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 							value = f"{drivers} · no time set · (0 laps)",
 							inline = inline,
 						)
-					else:
+					elif best_driver is not None:
 						best_driver = f"**{ACC.driverName(best_driver)}**"
 						best_time = ACC.convertTime(best_time)
 						embed.add_field(
@@ -224,15 +224,16 @@ class ACCRace(commands.Cog, name="Race Results"):
 						)
 					place += 1
 			# show fastest lap
-			bestLap = session['best']['lap']
-			bestCar = cars.get(bestLap['carId'])
-			bestDriver = f"**{ACC.driverName(bestCar.get('drivers')[bestLap['driverId']])}**"
-			embed.add_field(
-				name = "Fastest Lap",
-				value = f"**🛞 #{bestCar['number']}** {bestDriver}"\
-						f" · {ACC.convertTime(bestLap['time'])} on lap {bestLap['lap']}",
-				inline = False,
-			)
+			if session['best']['lap']['driver'] is not None:
+				bestLap = session['best']['lap']
+				bestCar = cars.get(bestLap['carId'])
+				bestDriver = f"**{ACC.driverName(bestCar.get('drivers')[bestLap['driverId']])}**"
+				embed.add_field(
+					name = "Fastest Lap",
+					value = f"**🛞 #{bestCar['number']}** {bestDriver}"\
+							f" · {ACC.convertTime(bestLap['time'])} on lap {bestLap['lap']}",
+					inline = False,
+				)
 			# show penalties
 			_types = (
 				"race",
