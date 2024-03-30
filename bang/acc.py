@@ -264,7 +264,7 @@ class ACC:
 			])
 
 	@staticmethod
-	def dateToEpoch(date:str, time:str, tz:str) -> int:
+	def dateToEpoch(date:str, time:str = None, tz:str = None) -> int:
 		date = Human.date(date) # datetime
 		if time is not None:
 			time = Human.time(time) # datetime
@@ -272,6 +272,8 @@ class ACC:
 				date,
 				time.time()
 			)
+		if tz is None:
+			return int(date.timestamp())
 		tz = pytz.timezone(tz)
 		combined = tz.localize(
 			date

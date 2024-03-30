@@ -222,6 +222,16 @@ class Event(commands.Cog, name="Event Management"):
 			data = Dest.json.load(file)
 			if data is None:
 				return embed, "ignore"
+			if data["epoch"] is not None:
+				epoch = ACC.dateToEpoch(
+					"now",
+					"now",
+					"UTC"
+					#self.bot.getConfig(ctx.guild, "timezone")
+				)
+				print(f"epoch: {epoch} vs {data['epoch']} = {data['epoch'] - epoch}")
+				if epoch > data["epoch"]:
+					return embed, "ignore"
 			label = self.bot.getConfig(member.guild, "label", "event")
 			emoji = str(await self.convertEmoji(ctx, emoji))
 			for l in label:
