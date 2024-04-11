@@ -165,23 +165,39 @@ class Event(commands.Cog, name="Event Management"):
 			if len(ctx.message.role_mentions) > 0:
 				mentions.extend([role.mention for role in ctx.message.role_mentions])
 			mention = " ".join(mentions)
-			files = None
+			#files = None
 			if len(ctx.message.attachments) > 0:
 				file = await self.bot.downloadAttachment(ctx.message.attachments[0])
-				files = [file]
-				if config["attachment"]["thumbnail"]:
-					embed.set_thumbnail(
-						url = f"attachment://{file.filename}"
-					)
-				if config["attachment"]["image"]:
-					embed.set_image(
-						url = f"attachment://{file.filename}"
-					)
+				#files = [file]
+				# cache the file in cache channel
+				cache_channel = self.bot.getConfig(ctx.guild, "channel", "cache")
+				if cache_channel is None:
+					cache_channel = self.bot.getConfig(ctx.guild, "channel", "log")
+				if cache_channel is None:
+					raise commands.BadArgument("The cache channel is not set.")
+				attachment = None
+				cache_channel = self.bot.get_channel(cache_channel)
+				if cache_channel is None:
+					raise commands.BadArgument("The cache channel is not found.")
+				cache = await cache_channel.send(
+					"Cache",
+					file=file,
+				)
+				attachment = cache.attachments[0]
+				if attachment is not None:
+					if config["attachment"]["thumbnail"]:
+						embed.set_thumbnail(
+							url = attachment.url
+						)
+					if config["attachment"]["image"]:
+						embed.set_image(
+							url = attachment.url
+						)
 			await ctx.message.delete()
 			message = await ctx.send(
 				content = f"📅 {mention}",
 				embed = embed,
-				files = files,
+				#files = files,
 			)
 			await message.add_reaction(label['accept']['emoji'])
 			await message.add_reaction(label['maybe']['emoji'])
@@ -217,6 +233,10 @@ class Event(commands.Cog, name="Event Management"):
 				self.bot.getTemp("events"),
 				f"{ctx.message.id}.json",
 			)
+			if ctx.message.attachments is not None and len(ctx.message.attachments) > 0:
+				embed.set_image(
+					url = ctx.message.attachments[0].url
+				)
 			if Dest.exists(file) is False:
 				return embed, "ignore"
 			data = Dest.json.load(file)
@@ -430,7 +450,7 @@ class Event(commands.Cog, name="Event Management"):
 			if action == "update":
 				await message.edit(
 					embed = embed,
-					attachments = message.attachments,
+					# attachments = message.attachments,
 				)
 			for reaction in message.reactions:
 				if str(reaction.emoji) == str(payload.emoji):
@@ -486,46 +506,8 @@ class Event(commands.Cog, name="Event Management"):
 			if action == "update":
 				await message.edit(
 					embed = embed,
-					attachments = message.attachments,
+					# attachments = message.attachments,
 				)
-		except Exception as e:
-			print(f"error: {e}")
-			raise e
-
-
-	@commands.command()
-	async def test(self, ctx:commands.Context) -> None:
-		try:
-			file = discord.File('image/dems2024-logo-wht.png', filename='new_image.png')
-			embed = discord.Embed(
-				title="Image Test",
-				description="Is this a bug?",
-			)
-			embed.set_image(url="attachment://new_image.png")
-			embed.add_field(
-				name="Status",
-				value="New",
-			)
-			message = await ctx.send(
-				file=file,
-				embed=embed,
-			)
-			async with ctx.typing():
-				await asyncio.sleep(5)
-				embed = message.embeds[0]
-				embed.set_field_at(
-					0,
-					name="Status",
-					value="Edited...",
-				)
-				#embed.set_image(
-				#	url=message.embeds[0].image.url,
-				#)
-				await message.edit(
-					embed=embed,
-					attachments=message.attachments,
-				)
-				return
 		except Exception as e:
 			print(f"error: {e}")
 			raise e
