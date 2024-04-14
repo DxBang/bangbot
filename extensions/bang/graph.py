@@ -295,11 +295,11 @@ class Graph(commands.Cog, name="Graph"):
 					ay = -30,
 				)
 				# fastest lap annotation
-				fastest_laptime_position = y.index(fastest_laptime_ms)
+				fastest_laptime_position = y.index(race['session']['best']['lap']['time'])
 				fig.add_annotation(
 					x = df['lap'][fastest_laptime_position],
 					y = df['laptime_ms'][fastest_laptime_position],
-					text = f"{ACC.convertTime(fastest_laptime_ms)}",
+					text = f"{ACC.convertTime(race['session']['best']['lap']['time'])}",
 					showarrow = True,
 					arrowhead = 1,
 					arrowwidth = 3,
