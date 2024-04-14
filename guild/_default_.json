@@ -64,11 +64,11 @@
 		},
 		"logo": {
 			"source": "image/bangsystems.png",
-			"x": 1,
+			"x": 0.5,
 			"y": 0.5,
 			"sizex": 1,
 			"sizey": 1,
-			"xanchor": "right",
+			"xanchor": "center",
 			"yanchor": "middle",
 			"opacity": 0.1
 		},

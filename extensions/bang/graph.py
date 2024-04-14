@@ -164,6 +164,7 @@ class Graph(commands.Cog, name="Graph"):
 				cars = race.get("cars", {})
 				slowest_laptime_ms = 0
 				fastest_laptime_ms = 999999999
+				valid_fastest_laptime_ms = 999999999
 				carAvgLaptime:dict = {}
 				showCars:list = []
 				if top is not None and len(top) > 0:
@@ -223,6 +224,9 @@ class Graph(commands.Cog, name="Graph"):
 							slowest_laptime_ms = _car["time"]
 						if _car["time"] < fastest_laptime_ms:
 							fastest_laptime_ms = _car["time"]
+						if _car["valid"] == True and _car["time"] < valid_fastest_laptime_ms:
+							valid_fastest_laptime_ms = _car["time"]
+
 				# create a dataframe
 				df = pd.DataFrame({
 					"lap": x,
@@ -295,11 +299,11 @@ class Graph(commands.Cog, name="Graph"):
 					ay = -30,
 				)
 				# fastest lap annotation
-				fastest_laptime_position = y.index(race['session']['best']['lap']['time'])
+				fastest_laptime_position = y.index(valid_fastest_laptime_ms)
 				fig.add_annotation(
 					x = df['lap'][fastest_laptime_position],
 					y = df['laptime_ms'][fastest_laptime_position],
-					text = f"{ACC.convertTime(race['session']['best']['lap']['time'])}",
+					text = f"{ACC.convertTime(valid_fastest_laptime_ms)}",
 					showarrow = True,
 					arrowhead = 1,
 					arrowwidth = 3,

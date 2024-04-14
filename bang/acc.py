@@ -717,8 +717,11 @@ class ACC:
 					continue
 				session = input.upper()
 				continue
-			if re.match(r"^\d{1,2}-\d{1,2}$", input):
+			if re.match(r"^\d{1,2}-\d{1,2}?$", input):
 				top = [int(number) for number in input.split("-")]
+				continue
+			if re.match(r"^\d$", input):
+				top = [int(input), int(input)]
 				continue
 			if input.startswith("#"):
 				numbers = [int(number) for number in input[1:].split(",")]
