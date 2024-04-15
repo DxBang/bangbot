@@ -81,8 +81,8 @@ class Graph(commands.Cog, name="Graph"):
 							yref = "paper",
 							x = config['logo']['x'],
 							y = config['logo']['y'],
-							sizex = config['logo']['sizex'],
-							sizey = config['logo']['sizey'],
+							sizex = config['logo']['size'],
+							sizey = config['logo']['size'],
 							xanchor = config['logo']['xanchor'],
 							yanchor = config['logo']['yanchor'],
 							opacity = config['logo']['opacity'],
@@ -101,7 +101,6 @@ class Graph(commands.Cog, name="Graph"):
 					mime = Dest.mime(logo)
 					with open(logo, "rb") as f:
 						logo = base64.b64encode(f.read()).decode()
-					# calculate the y position
 					fig.add_layout_image(
 						dict(
 							source = f"data:{mime};base64,{logo}",
@@ -109,15 +108,15 @@ class Graph(commands.Cog, name="Graph"):
 							yref = "paper",
 							x = 1.055,
 							y = y_start,
-							sizex = sponsor['sizey'],
-							sizey = sponsor['sizey'],
+							sizex = sponsor['size'],
+							sizey = sponsor['size'],
 							xanchor = "right",
 							yanchor = "bottom",
 							opacity = 0.8,
 							layer = "below",
 						)
 					)
-					y_start += sponsor['sizey'] + 0.01
+					y_start += sponsor['size'] + 0.01
 			logo = None
 			return fig
 		except Exception as e:

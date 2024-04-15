@@ -66,8 +66,7 @@
 			"source": "image/bangsystems.png",
 			"x": 0.5,
 			"y": 0.5,
-			"sizex": 1,
-			"sizey": 1,
+			"size": 1,
 			"xanchor": "center",
 			"yanchor": "middle",
 			"opacity": 0.1
@@ -75,11 +74,19 @@
 		"sponsors": [
 			{
 				"source": "image/bangsystems.png",
-				"sizey": 0.1
+				"size": 0.1
+			},
+			{
+				"source": "image/lfm_bop_logo.png",
+				"size": 0.1
+			},
+			{
+				"source": "image/daglibrugsen.jpg",
+				"size": 0.15
 			},
 			{
 				"source": "image/racebot.png",
-				"sizey": 0.2
+				"size": 0.2
 			}
 		],
 		"annotation": {
