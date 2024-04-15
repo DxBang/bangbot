@@ -72,6 +72,16 @@
 			"yanchor": "middle",
 			"opacity": 0.1
 		},
+		"sponsors": [
+			{
+				"source": "image/bangsystems.png",
+				"sizey": 0.1
+			},
+			{
+				"source": "image/racebot.png",
+				"sizey": 0.2
+			}
+		],
 		"annotation": {
 			"fastest": {
 				"color": "rgb(110, 100, 250)",

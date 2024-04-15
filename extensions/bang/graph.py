@@ -89,6 +89,36 @@ class Graph(commands.Cog, name="Graph"):
 							layer = "below",
 						)
 					)
+			y_start = 0.0
+			for sponsor in config['sponsors']:
+				if sponsor['source'] != "" and sponsor['source'] is not None:
+					logo = Dest.file(sponsor['source'])
+					if not Dest.exists(logo):
+						print(f"file not found: {logo}")
+						continue
+					print(f"sponsor: {logo}")
+					# get mime type
+					mime = Dest.mime(logo)
+					with open(logo, "rb") as f:
+						logo = base64.b64encode(f.read()).decode()
+					# calculate the y position
+					fig.add_layout_image(
+						dict(
+							source = f"data:{mime};base64,{logo}",
+							xref = "paper",
+							yref = "paper",
+							x = 1.055,
+							y = y_start,
+							sizex = sponsor['sizey'],
+							sizey = sponsor['sizey'],
+							xanchor = "right",
+							yanchor = "bottom",
+							opacity = 0.8,
+							layer = "below",
+						)
+					)
+					y_start += sponsor['sizey'] + 0.01
+			logo = None
 			return fig
 		except Exception as e:
 			raise e
@@ -421,14 +451,14 @@ class Graph(commands.Cog, name="Graph"):
 				)
 				print(f"pngFile: {pngFile}")
 				# check if png file exists
-				#"""
+				"""
 				if Dest.exists(Dest.join(temp, pngFile)):
 					return await ctx.send(
 						file=discord.File(
 							Dest.join(temp, pngFile)
 						)
 					)
-				#"""
+				"""
 				# prepare the graph
 				label = self.bot.getConfig(ctx.guild, "label", "graph")
 				config = self.bot.getConfig(ctx.guild, "graph")
