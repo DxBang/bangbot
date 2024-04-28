@@ -89,7 +89,12 @@ class Graph(commands.Cog, name="Graph"):
 							layer = "below",
 						)
 					)
+			"""
+			# add sponsors
 			y_start = 0.0
+			# Plotly is buggy when it comes to placing images on the x-axis when the width is dynamic...
+			x_start = 1.2 - (width * 0.0001)
+			print(f"x_start: {x_start}")
 			for sponsor in config['sponsors']:
 				if sponsor['source'] != "" and sponsor['source'] is not None:
 					logo = Dest.file(sponsor['source'])
@@ -106,7 +111,7 @@ class Graph(commands.Cog, name="Graph"):
 							source = f"data:{mime};base64,{logo}",
 							xref = "paper",
 							yref = "paper",
-							x = 1.055,
+							x = x_start,
 							y = y_start,
 							sizex = sponsor['size'],
 							sizey = sponsor['size'],
@@ -117,6 +122,7 @@ class Graph(commands.Cog, name="Graph"):
 						)
 					)
 					y_start += sponsor['size'] + 0.01
+			"""
 			logo = None
 			return fig
 		except Exception as e:
@@ -166,14 +172,14 @@ class Graph(commands.Cog, name="Graph"):
 				)
 				print(f"pngFile: {pngFile}")
 				# check if png file exists
-				#"""
+				"""
 				if Dest.exists(Dest.join(temp, pngFile)):
 					return await ctx.send(
 						file=discord.File(
 							Dest.join(temp, pngFile)
 						)
 					)
-				#"""
+				"""
 				# prepare the graph
 				label = self.bot.getConfig(ctx.guild, "label", "graph")
 				config = self.bot.getConfig(ctx.guild, "graph")
