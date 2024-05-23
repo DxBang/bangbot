@@ -399,13 +399,14 @@ class Event(commands.Cog, name="Event Management"):
 				print(f"remove: {r}, {embed.fields[r].name}")
 				embed.remove_field(r)
 			# recreate the fields
+			of_limit = "" if data["limit"] is None else f"/{data['limit']}"
 			for r in range(largest):
 				accept = _accepts[r] if r < len(_accepts) else []
 				maybe = _maybes[r] if r < len(_maybes) else []
 				decline = _declines[r] if r < len(_declines) else []
 				for col, members in enumerate([accept, maybe, decline]):
 					if col == column['accept']:
-						name = f"{label['accept']['emoji']} {label['accept']['name']} ({len(accepts)}/{data['limit'] if data['limit'] is not None else ''})"
+						name = f"{label['accept']['emoji']} {label['accept']['name']} ({len(accepts)}{of_limit})"
 					elif col == column['maybe']:
 						name = f"{label['maybe']['emoji']} {label['maybe']['name']} ({len(maybes)})"
 					elif col == column['decline']:
