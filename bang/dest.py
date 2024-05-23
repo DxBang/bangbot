@@ -114,6 +114,10 @@ class Dest:
 			raise e
 
 	@staticmethod
+	def move(source:str, destination:str) -> None:
+		return Dest.rename(source, destination)
+
+	@staticmethod
 	def copy(source:str, destination:str) -> None:
 		try:
 			shutil.copy(source, destination)

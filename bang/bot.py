@@ -397,8 +397,12 @@ class Bot(commands.Bot):
 		except Exception as e:
 			self.debug(e)
 
-	def getTemp(self, subfolder:str = None) -> str:
+	def getTemp(self, subfolder:str = None, guild:discord.Guild = None) -> str:
 		try:
+			if subfolder is not None and guild is not None:
+				subfolder = f"{guild.id}/{subfolder}"
+			elif subfolder is None and guild is not None:
+				subfolder = f"{guild.id}"
 			return Dest.temp(
 				system = self.config["bot"]["use_system_temp"],
 				subfolder = subfolder

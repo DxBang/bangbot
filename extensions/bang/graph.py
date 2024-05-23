@@ -143,13 +143,13 @@ class Graph(commands.Cog, name="Graph"):
 		try:
 			print(f"laptimes")
 			async with ctx.typing():
-				date, time, _, top, numbers, _ = ACC.parseRaceInput(input)
+				_, date, time, _, top, numbers, _, _ = ACC.parseRaceInput(input)
 				print(f"laptimes")
 				print(f"\tdate:    {type(date)} {date}")
 				print(f"\ttime:    {type(time)} {time}")
 				print(f"\ttop:     {type(top)} {top}")
 				print(f"\tnumbers: {type(numbers)} {numbers}")
-				temp = self.bot.getTemp("results")
+				temp = self.bot.getTemp("results", ctx.guild)
 				session = ACC.session(
 					temp,
 					date,
@@ -426,13 +426,13 @@ class Graph(commands.Cog, name="Graph"):
 		"""
 		try:
 			async with ctx.typing():
-				date, time, _, top, numbers, _ = ACC.parseRaceInput(input)
+				_, date, time, _, top, numbers, _, _ = ACC.parseRaceInput(input)
 				print(f"positions")
 				print(f"\tdate:    {type(date)} {date}")
 				print(f"\ttime:    {type(time)} {time}")
 				print(f"\ttop:     {type(top)} {top}")
 				print(f"\tnumbers: {type(numbers)} {numbers}")
-				temp = self.bot.getTemp("results")
+				temp = self.bot.getTemp("results", ctx.guild)
 				session = ACC.session(
 					temp,
 					date,

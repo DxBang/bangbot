@@ -4,6 +4,7 @@ Login to ACC Dedicated Server via FTP and get the race results.
 import bang
 import ftplib
 from datetime import datetime
+from datetime import timedelta
 import re
 #from PIL import Image, ImageDraw, ImageFont
 from discord.ext import commands
@@ -26,7 +27,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		except Exception as e:
 			raise e
 
-	def getResults(self, config, pattern:str, latest:bool = False) -> list | None:
+	def getResults(self, ctx:commands.Context, config, pattern:str, latest:bool = False) -> list | None:
 		try:
 			print(f"get_results: {pattern}")
 			if (('host' not in config or config['host'] is None) or
@@ -38,7 +39,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 			self.ftp.connect(config['host'], config['port'])
 			self.ftp.login(config['user'], config['password'])
 			self.ftp.cwd(config['directory'])
-			temp = self.bot.getTemp("results")
+			temp = self.bot.getTemp("results", ctx.guild)
 			# check if storage directory exists and create if not
 			files = []
 			self.ftp.retrlines("LIST", files.append)
@@ -63,46 +64,61 @@ class ACCRace(commands.Cog, name="Race Results"):
 			self.bot.debug(e)
 			raise e
 
-	async def sync_results(self, config) -> tuple[list, list]:
+	async def syncResults(self, ctx:commands.Context, config, limit:int = 7) -> tuple[list, list]:
 		if (('host' not in config or config['host'] is None) or
 			('port' not in config or config['port'] is None) or
 			('user' not in config or config['user'] is None) or
 			('password' not in config or config['password'] is None) or
 			('directory' not in config or config['directory'] is None)):
 			raise ValueError("FTP configuration is incomplete.")
-		print(f"sync_results: {config}")
-		temp = self.bot.getTemp("results")
+		print(f"syncResults: {config}")
+		if limit == 0:
+			limit = 1000
+		print(f"limit: {limit}")
+		temp = self.bot.getTemp("results", ctx.guild)
 		self.ftp.connect(config['host'], config['port'])
 		self.ftp.login(config['user'], config['password'])
 		self.ftp.cwd(config['directory'])
+		# set date of today at 00:00 minus limit days
+		date_limit = datetime.now().replace(
+			hour = 0,
+			minute = 0,
+			second = 0,
+			microsecond = 0
+		) - timedelta(days=limit)
+		print(f"date_limit: {date_limit}")
 		files = []
 		download_files = []
 		delete_files = []
 		self.ftp.retrlines("LIST", files.append)
-		filenames = [line.split()[-1] for line in files]
+		filenames = sorted([line.split()[-1] for line in files], reverse=True)
 		for filename in filenames:
 			local_filename = Dest.join(temp, filename)
-			if not Dest.exists(local_filename):
-				print(f"download: {filename}")
-				with open(local_filename, "wb") as file:
-					self.ftp.retrbinary(f"RETR {filename}",
-						file.write
-					)
-					download_files.append(filename)
-			data = Dest.json.load(local_filename)
-			if len(data["laps"]) == 0:
-				print(f"delete: {filename}")
-				if not Dest.exists(Dest.backup(local_filename)):
-					Dest.rename(
-						local_filename,
-						Dest.backup(local_filename)
-					)
-				else:
-					Dest.remove(
-						local_filename
-					)
-				delete_files.append(filename)
-				#self.ftp.delete(filename)
+			date_file = re.search(r"(\d{6})_(\d{6})", filename)
+			date_file = datetime.strptime(f"{date_file.group(1)}{date_file.group(2)}", "%y%m%d%H%M%S")
+			#print(f"date_file: {date_file} vs date_limit: {date_limit}")
+			if date_file > date_limit:
+				if not Dest.exists(local_filename):
+					print(f"download: {filename}")
+					with open(local_filename, "wb") as file:
+						self.ftp.retrbinary(f"RETR {filename}",
+							file.write
+						)
+						download_files.append(filename)
+				data = Dest.json.load(local_filename)
+				if len(data["laps"]) == 0:
+					print(f"delete: {filename}")
+					if not Dest.exists(Dest.backup(local_filename)):
+						Dest.rename(
+							local_filename,
+							Dest.backup(local_filename)
+						)
+					else:
+						Dest.remove(
+							local_filename
+						)
+					delete_files.append(filename)
+					self.ftp.delete(filename)
 		self.ftp.quit()
 		return download_files, delete_files
 
@@ -278,7 +294,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		except Exception as e:
 			raise e
 
-	async def handleRequest(self, ctx:commands.Context, session:str, date:datetime = None, time:datetime = None, sync:bool = False) -> None:
+	async def handleRequest(self, ctx:commands.Context, session:str, date:datetime = None, time:datetime = None, sync:bool = False, limit:int = 7) -> None:
 		try:
 			print(f"handleRequest: {session} {date} {time}")
 			async with ctx.typing():
@@ -290,7 +306,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 					raise ValueError("Session must be one of **FP**, **Q**, **R**.")
 				temp = self.bot.getTemp("results")
 				if sync:
-					await self.sync_results(self.bot.getConfig(ctx.guild, "connect", "acc"))
+					await self.syncResults(ctx, self.bot.getConfig(ctx.guild, "connect", "acc"), limit)
 
 				if session.lower() == "r":
 					file = Dest.join(
@@ -341,7 +357,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 			traceback.print_exc()
 			raise e
 
-	async def handleList(self, ctx:commands.Context, session:str, date:str, time:str, sync:bool = False) -> None:
+	async def handleList(self, ctx:commands.Context, session:str, date:str, time:str) -> None:
 		try:
 			if session.lower() not in ["fp", "q", "r"]:
 				raise ValueError("Session must be one of **FP**, **Q**, **R**.")
@@ -434,17 +450,18 @@ class ACCRace(commands.Cog, name="Race Results"):
 		{ctx.prefix}race 241231 235959
 		{ctx.prefix}race latest
 		{ctx.prefix}race yesterday latest
+		{ctx.prefix}race sync
+		{ctx.prefix}race sync all
 		```
 		"""
 		try:
-			date, time, _, _, _, sync = ACC.parseRaceInput(input)
+			server, date, time, _, _, _, sync, limit = ACC.parseRaceInput(input)
 			if date == '*' or time == '*':
 				return await self.handleList(
 					ctx = ctx,
 					session = "r",
 					date = date,
 					time = time,
-					sync = sync,
 				)
 			print(f"race: {date} {time} {sync}")
 			await self.handleRequest(
@@ -453,6 +470,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 				date = ACC.parseDate(date),
 				time = ACC.parseTime(time),
 				sync = Human.parseBool(sync),
+				limit = limit,
 			)
 		except ValueError as e:
 			await self.bot.warn(
@@ -490,14 +508,13 @@ class ACCRace(commands.Cog, name="Race Results"):
 		```
 		"""
 		try:
-			date, time, _, _, _, sync = ACC.parseRaceInput(input)
+			server, date, time, _, _, _, sync, limit = ACC.parseRaceInput(input)
 			if date == '*' or time == '*':
 				return await self.handleList(
 					ctx = ctx,
 					session = "q",
 					date = date,
 					time = time,
-					sync = sync,
 				)
 			print(f"qualify: {date} {time} {sync}")
 			await self.handleRequest(
@@ -506,6 +523,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 				date = ACC.parseDate(date),
 				time = ACC.parseTime(time),
 				sync = Human.parseBool(sync),
+				limit = limit,
 			)
 		except ValueError as e:
 			await self.bot.warn(
@@ -543,14 +561,13 @@ class ACCRace(commands.Cog, name="Race Results"):
 		```
 		"""
 		try:
-			date, time, _, _, _, sync = ACC.parseRaceInput(input)
+			server, date, time, _, _, _, sync, limit = ACC.parseRaceInput(input)
 			if date == '*' or time == '*':
 				return await self.handleList(
 					ctx = ctx,
 					session = "fp",
 					date = date,
 					time = time,
-					sync = sync,
 				)
 			print(f"practice: {date} {time} {sync}")
 			await self.handleRequest(
@@ -559,6 +576,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 				date = ACC.parseDate(date),
 				time = ACC.parseTime(time),
 				sync = Human.parseBool(sync),
+				limit = limit,
 			)
 		except ValueError as e:
 			await self.bot.warn(
@@ -591,7 +609,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 		try:
 			if session is None:
 				raise ValueError("Missing a session name.")
-			temp = self.bot.getTemp("sessions")
+			temp = self.bot.getTemp("sessions", ctx.guild)
 			# create the session
 			"""
 			session = [
@@ -698,7 +716,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 			self.ftp.connect(config['host'], config['port'])
 			self.ftp.login(config['user'], config['password'])
 			self.ftp.cwd(config['directory'])
-			storage = self.bot.getTemp("results_backup")
+			storage = self.bot.getTemp("results_backup", ctx.guild)
 			files = []
 			self.ftp.retrlines("LIST", files.append)
 			filenames = [line.split()[-1] for line in files]

@@ -73,12 +73,27 @@ class Event(commands.Cog, name="Event Management"):
 		A single image can be attached to the event message, and it can be set to be a thumbnail or the main image in the configuration.
 		"""
 		try:
-			title = ctx.message.content.split("\n", 1)[0].split(" ", 1)[1].strip()
-			description = ctx.message.content.split("\n", 1)[1].strip().split("\n")
+			message = ctx.message.content
+			# remove the command from the message
+			message = message.replace(f"{ctx.prefix}event", "").strip()
+			mentions = []
+			# check if the message has mentions and then add those to mentions list and remove them from the message
+			if len(ctx.message.role_mentions) > 0:
+				for role in ctx.message.role_mentions:
+					mentions.extend(role)
+					# remove the role mentions from the description
+					message = message.replace(role.mention, "")
+			# split the message into lines
+			message = message.split("\n")
+			# get the title from the first line
+			title = message[0].strip()
+			# get the description from the rest of the lines
+			description = message[1:]
 			# find the first line in description which starts with "date:" and "time:" and parse the date and time to epoch, then remove the line from the description
 			date = None
 			time = None
 			epoch = None
+			limit = None
 			delete = []
 			for idx, line in enumerate(description):
 				if date is None:
@@ -89,6 +104,11 @@ class Event(commands.Cog, name="Event Management"):
 				if time is None:
 					if line.lower().startswith("time:"):
 						time = line.split(" ", 1)[1].strip()
+						# remove the line from the description
+						delete.append(idx)
+				if limit is None:
+					if line.lower().startswith("limit:"):
+						limit = int(line.split(" ", 1)[1].strip())
 						# remove the line from the description
 						delete.append(idx)
 			delete = delete[::-1]
@@ -108,8 +128,8 @@ class Event(commands.Cog, name="Event Management"):
 				name = ctx.guild.name,
 				icon_url = ctx.guild.icon,
 			)
-			mention = None
-			mentions = []
+			mention = ''
+			#mentions = []
 			roles = self.bot.getConfig(ctx.guild, "event", "roles")
 			if isinstance(roles, list) and len(roles) > 0:
 				mentions.extend([role.mention for role in ctx.guild.roles if role.id in roles])
@@ -164,6 +184,10 @@ class Event(commands.Cog, name="Event Management"):
 			)
 			if len(ctx.message.role_mentions) > 0:
 				mentions.extend([role.mention for role in ctx.message.role_mentions])
+				# remove the role mentions from the description
+				description = "\n".join([line for line in description.split("\n") if line not in [role.mention for role in ctx.message.role_mentions]])
+				# remove the role mentions from the title
+				title = " ".join([word for word in title.split(" ") if word not in [role.mention for role in ctx.message.role_mentions]])
 			mention = " ".join(mentions)
 			#files = None
 			if len(ctx.message.attachments) > 0:
@@ -180,7 +204,7 @@ class Event(commands.Cog, name="Event Management"):
 				if cache_channel is None:
 					raise commands.BadArgument("The cache channel is not found.")
 				cache = await cache_channel.send(
-					"Cache",
+					f"Cache: {title}",
 					file=file,
 				)
 				attachment = cache.attachments[0]
@@ -203,16 +227,19 @@ class Event(commands.Cog, name="Event Management"):
 			await message.add_reaction(label['maybe']['emoji'])
 			await message.add_reaction(label['decline']['emoji'])
 			file = Dest.join(
-				self.bot.getTemp("events"),
+				self.bot.getTemp("events", ctx.guild),
 				f"{message.id}.json",
 			)
 			Dest.json.save(
 				file,
 				{
 					"channel": message.channel.id,
+					# mention the roles as ids
+					"mention": [role.id for role in ctx.message.role_mentions],
 					"title": title,
 					"description": description,
 					"epoch": epoch,
+					"limit": limit,
 					"accept": [],
 					"maybe": [],
 					"decline": [],
@@ -230,7 +257,7 @@ class Event(commands.Cog, name="Event Management"):
 			embed = ctx.message.embeds[0]
 			print(f"handleReaction: {embed}, {member}, {action}, {type(emoji)} {emoji}")
 			file = Dest.join(
-				self.bot.getTemp("events"),
+				self.bot.getTemp("events", ctx.guild),
 				f"{ctx.message.id}.json",
 			)
 			if ctx.message.attachments is not None and len(ctx.message.attachments) > 0:
@@ -303,6 +330,8 @@ class Event(commands.Cog, name="Event Management"):
 				action = "update"
 				if emoji == label['accept']['emoji'] and member.id not in [m['id'] for m in accepts]:
 					print(f"add accept: {member.display_name}")
+					if data["limit"] is not None and len(accepts) >= data["limit"]:
+						return embed, "remove"
 					accepts.append(
 						{
 							"id": member.id,
@@ -376,11 +405,11 @@ class Event(commands.Cog, name="Event Management"):
 				decline = _declines[r] if r < len(_declines) else []
 				for col, members in enumerate([accept, maybe, decline]):
 					if col == column['accept']:
-						name = f"{label['accept']['emoji']} {label['accept']['name']}"
+						name = f"{label['accept']['emoji']} {label['accept']['name']} ({len(accepts)}/{data['limit'] if data['limit'] is not None else ''})"
 					elif col == column['maybe']:
-						name = f"{label['maybe']['emoji']} {label['maybe']['name']}"
+						name = f"{label['maybe']['emoji']} {label['maybe']['name']} ({len(maybes)})"
 					elif col == column['decline']:
-						name = f"{label['decline']['emoji']} {label['decline']['name']}"
+						name = f"{label['decline']['emoji']} {label['decline']['name']} ({len(declines)})"
 					embed.add_field(
 						name = name,
 						value = "\n".join([f"{member['name']}" for member in members]) if len(members) > 0 else "\u200b",

@@ -475,7 +475,7 @@ class ACC:
 	def session(path:str, date:datetime, time:datetime = None, free_practices:int = 1) -> dict | None:
 		files = ACC.sessionFiles(path, date, time, free_practices)
 		if files is None:
-			return None
+			raise FileNotFoundError(f"No session files found in {path} for {date} {time} with {free_practices} free practices.")
 		date, time, _ = Dest.filename(files.get("r")).split("_")
 		ret = {
 			"version": "0.1",
@@ -707,8 +707,10 @@ class ACC:
 		top:list[int] = []
 		numbers:list[int] = []
 		sync:bool = False
+		limit:int = 14
+		server:str = None
 		if input is None:
-			return date, time, session, top, numbers, sync
+			return server, date, time, session, top, numbers, sync, limit
 		inputs = input.split(" ")
 		for input in inputs:
 			if input.lower() in ["r", "q", "fp", "f", "p"]:
@@ -729,10 +731,18 @@ class ACC:
 			if input.lower() in ["sync", "s", "y", "yes", "true", "t"]:
 				sync = True
 				continue
+			if sync:
+				if input.lower() in ["all", "full", "complete", "everything", "every", "e"]:
+					limit = 0
+					continue
+			# get server name based on random letters and maybe numbers at the end
+			if re.match(r"^[A-z]+([-\,\.0-9]+)?$", input):
+				server = input
+				continue
 			if date is None:
 				date = ACC.parseDate(input)
 				continue
 			if date is not None and time is None:
 				time = ACC.parseTime(input)
 				continue
-		return date, time, session, top, numbers, sync
+		return server, date, time, session, top, numbers, sync, limit
