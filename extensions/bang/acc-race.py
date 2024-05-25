@@ -370,7 +370,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 					# show ALL of the day
 					time = None
 			files = ACC.sessionTimestampFiles(
-				self.bot.getTemp("results"),
+				self.bot.getTemp("results", ctx.guild),
 			)
 			if session.lower() == "r":
 				files = files.get("r")
