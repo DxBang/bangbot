@@ -304,7 +304,7 @@ class ACCRace(commands.Cog, name="Race Results"):
 					raise ValueError("ACC Dedicated Server configuration not found.")
 				if session.lower() not in ["fp", "q", "r"]:
 					raise ValueError("Session must be one of **FP**, **Q**, **R**.")
-				temp = self.bot.getTemp("results")
+				temp = self.bot.getTemp("results", ctx.guild)
 				if sync:
 					await self.syncResults(ctx, self.bot.getConfig(ctx.guild, "connect", "acc"), limit)
 
