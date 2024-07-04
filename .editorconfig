@@ -14,5 +14,8 @@ trim_trailing_whitespace=false
 indent_style=space
 indent_size=2
 
-[*.{json,xml,version,svg}]
+[*.{json,xml,svg}]
+insert_final_newline=false
+
+[.{version,repo}]
 insert_final_newline=false

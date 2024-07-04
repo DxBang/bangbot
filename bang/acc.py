@@ -119,6 +119,7 @@ class ACC:
 			"donington_2020": "Donington Park '20",
 			"imola_2020": "Autodromo Internazionale Enzo e Dino Ferrari '20",
 			"red_bull_ring": "Red Bull Ring",
+			"nurburgring_24h": "Nürburgring Nordshleife",
 		}.get(short, short)
 
 	@staticmethod
@@ -187,7 +188,7 @@ class ACC:
 		}.get(place, f"{place}.")
 
 	@staticmethod
-	def car(car:int) -> dict:
+	def car(car:int) -> list | None:
 		return {
 			0: ["Porsche 991 GT3 R", 2018, "GT3"],
 			1: ["Mercedes-AMG GT3", 2015, "GT3"],
@@ -225,10 +226,12 @@ class ACC:
 			33: ["Lamborghini Huracan GT3 Evo 2", 2023, "GT3"],
 			34: ["Porsche 992 GT3 R", 2023, "GT3"],
 			35: ["McLaren 720S GT3 Evo", 2023, "GT3"],
+
 			50: ["Alpine A110 GT4", 2018, "GT4"],
 			51: ["Aston Martin Vantage GT4", 2018, "GT4"],
 			52: ["Audi R8 LMS GT4", 2018, "GT4"],
 			53: ["BMW M4 GT4", 2018, "GT4"],
+
 			55: ["Chevrolet Camaro GT4", 2017, "GT4"],
 			56: ["Ginetta G55 GT4", 2012, "GT4"],
 			57: ["KTM X-Bow GT4", 2016, "GT4"],
@@ -236,6 +239,13 @@ class ACC:
 			59: ["McLaren 570S GT4", 2016, "GT4"],
 			60: ["Mercedes AMG GT4", 2016, "GT4"],
 			61: ["Porsche 718 Cayman GT4 Clubsport", 2019, "GT4"],
+
+			80: ["Audi R8 LMS GT2", 2021, "GT2"],
+			81: ["KTM XBOW GT2", 2021, "GT2"],
+			82: ["Maserati MC20 GT2", 2023, "GT2"],
+			83: ["Mercedes AMG GT2", 2023, "GT2"],
+			84: ["Porsche 911 GT2 RS CS Evo", 2023, "GT2"],
+			85: ["Porsche 935", 2019, "GT2"],
 		}.get(car, [f"Unknown Car #{car}", 0, "Unknown"])
 
 	@staticmethod
