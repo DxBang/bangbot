@@ -21,6 +21,6 @@
 		"!bang.poll",
 		"!bang.gaming",
 		"!bang.test",
-		"!bang.welcome"
+		"bang.welcome"
 	]
 }

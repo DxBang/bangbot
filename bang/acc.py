@@ -9,7 +9,7 @@ class ACC:
 	def parseDateRegexp(date:str = None, throw:bool = True) -> str | None:
 		print(f"parseDate: {date} ({type(date)})")
 		if date is None or date.lower() == "latest":
-			return "\d{6}"
+			return r"\d{6}"
 		return ACC.parseDate(date, throw)
 
 	@staticmethod
@@ -25,7 +25,7 @@ class ACC:
 	def parseTimeRegexp(time:str = None, throw:bool = True) -> str | None:
 		print(f"parseTime: {time} ({type(time)}")
 		if time is None or time.lower() == "latest" or time == "*":
-			return "\d{6}"
+			return r"\d{6}"
 		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9][\.:]?[0-5][0-9]", time):
 			return re.sub(r'[\.:]', '', time)
 		if re.match(r"^[0-2][0-9][\.:]?[0-5][0-9]", time):
